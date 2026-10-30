@@ -1,0 +1,14 @@
+{% comment %}
+  Badge
+  Vars: label, variant (default|muted|success|warning|danger|gold), class
+{% endcomment %}
+{% with variant=variant|default:"default" %}
+<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+             {% if variant == 'muted' %}bg-surface text-ink-muted border border-border
+             {% elif variant == 'success' %}bg-success/10 text-success
+             {% elif variant == 'warning' %}bg-warning/10 text-warning
+             {% elif variant == 'danger' %}bg-danger/10 text-danger
+             {% elif variant == 'gold' %}bg-gold-soft text-ink border border-gold
+             {% else %}bg-ink text-canvas{% endif %}
+             {{ class }}">{{ label }}</span>
+{% endwith %}

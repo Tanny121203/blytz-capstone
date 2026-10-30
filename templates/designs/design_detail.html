@@ -1,0 +1,31 @@
+{% extends "base_customer.html" %}
+
+{% block title %}{{ design.title }} — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+  <p class="text-sm text-ink-muted">
+    <a href="{% url 'app_home' %}" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Dashboard</a>
+    <span class="mx-1">/</span>
+    <a href="{% url 'design_list' %}" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Designs</a>
+    <span class="mx-1">/</span>
+    {{ design.title }}
+  </p>
+  <div class="mt-4 flex flex-wrap items-center gap-3">
+    <h1 class="font-display text-3xl text-ink">{{ design.title }}</h1>
+    {% if design.is_submitted %}
+      {% include "components/badge.html" with label="Submitted" variant="success" %}
+    {% else %}
+      {% include "components/badge.html" with label="Draft" variant="muted" %}
+    {% endif %}
+  </div>
+  <p class="mt-2 text-sm text-ink-muted">
+    {{ design.garment_template|default:"tee" }} · {{ design.garment_color|default:"—" }}
+  </p>
+
+  <div class="mt-8 rounded-lg border border-dashed border-border bg-surface p-8 text-center">
+    <p class="font-display text-xl text-ink">Editor coming soon</p>
+    <p class="mt-2 text-sm text-ink-muted">Canvas host / Fabric.js will plug in here. Your draft is saved.</p>
+  </div>
+</section>
+{% endblock %}

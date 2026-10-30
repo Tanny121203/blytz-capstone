@@ -1,0 +1,34 @@
+{% comment %}
+  Tabs
+  Vars: id (required), tabs — list of {id, label, panel} OR use data attributes in gallery.
+  Simpler API: tabs_items as list of dicts with key, label, content
+{% endcomment %}
+{% with root_id=id|default:"tabs" %}
+<div data-tabs id="{{ root_id }}" class="{{ class }}">
+  <div role="tablist" aria-label="{{ label|default:'Tabs' }}" class="flex gap-1 overflow-x-auto border-b border-border">
+    {% for tab in tabs %}
+    <button type="button"
+            role="tab"
+            id="{{ root_id }}-tab-{{ tab.key }}"
+            aria-controls="{{ root_id }}-panel-{{ tab.key }}"
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+            tabindex="{% if forloop.first %}0{% else %}-1{% endif %}"
+            data-tab="{{ tab.key }}"
+            class="shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink
+                   {% if forloop.first %}border-ink text-ink{% else %}border-transparent text-ink-muted hover:text-ink{% endif %}">
+      {{ tab.label }}
+    </button>
+    {% endfor %}
+  </div>
+  {% for tab in tabs %}
+  <div role="tabpanel"
+       id="{{ root_id }}-panel-{{ tab.key }}"
+       aria-labelledby="{{ root_id }}-tab-{{ tab.key }}"
+       data-tab-panel="{{ tab.key }}"
+       class="py-4 text-sm text-ink {% if not forloop.first %}hidden{% endif %}"
+       {% if not forloop.first %}hidden{% endif %}>
+    {{ tab.content }}
+  </div>
+  {% endfor %}
+</div>
+{% endwith %}

@@ -1,0 +1,48 @@
+{% comment %}
+  Messages — Django messages framework.
+  Renders request messages; optional `extra` list of {level, text}.
+  Fixed below the navbar so content does not jump when banners dismiss.
+{% endcomment %}
+{% if messages or extra %}
+<div class="pointer-events-none fixed inset-x-0 px-4 pt-3 sm:px-6"
+     style="top:var(--blytz-nav-offset, 3.5rem);z-index:60"
+     data-messages-root
+     role="region"
+     aria-label="Notifications"
+     aria-live="polite">
+  <div class="mx-auto flex w-full max-w-6xl flex-col gap-2 {{ class }}">
+    {% for message in messages %}
+    {% with tags=message.tags|default:"" %}
+    <div class="pointer-events-auto flex items-start gap-3 rounded-md border bg-canvas px-4 py-3 text-sm shadow-sm
+                {% if tags == 'error' or 'error' in tags %}border-danger text-danger
+                {% elif tags == 'success' or 'success' in tags %}border-success text-success
+                {% elif tags == 'warning' or 'warning' in tags %}border-warning text-warning
+                {% else %}border-border text-ink{% endif %}"
+         data-message
+         data-message-level="{% if tags == 'error' or 'error' in tags %}error{% elif tags == 'success' or 'success' in tags %}success{% elif tags == 'warning' or 'warning' in tags %}warning{% else %}info{% endif %}">
+      <p class="min-w-0 flex-1">{{ message }}</p>
+      <button type="button"
+              class="pointer-events-auto inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-current hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              data-message-close
+              aria-label="Dismiss notification">×</button>
+    </div>
+    {% endwith %}
+    {% endfor %}
+    {% for m in extra %}
+    <div class="pointer-events-auto flex items-start gap-3 rounded-md border bg-canvas px-4 py-3 text-sm shadow-sm
+                {% if m.level == 'error' %}border-danger text-danger
+                {% elif m.level == 'success' %}border-success text-success
+                {% elif m.level == 'warning' %}border-warning text-warning
+                {% else %}border-border text-ink{% endif %}"
+         data-message
+         data-message-level="{{ m.level|default:'info' }}">
+      <p class="min-w-0 flex-1">{{ m.text }}</p>
+      <button type="button"
+              class="pointer-events-auto inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-current hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              data-message-close
+              aria-label="Dismiss notification">×</button>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

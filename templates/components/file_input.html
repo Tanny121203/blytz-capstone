@@ -1,0 +1,30 @@
+{% comment %}
+  FileInput
+  Vars: label, name, id, help, error, required, disabled, accept, multiple, class, accent
+{% endcomment %}
+{% with field_id=id|default:name %}
+<div class="w-full {{ class }}">
+  {% if label %}
+  <label for="{{ field_id }}" class="mb-1.5 block text-sm font-medium text-ink">{{ label }}{% if required %}<span class="text-danger" aria-hidden="true"> *</span>{% endif %}</label>
+  {% endif %}
+  <input
+    type="file"
+    name="{{ name }}"
+    id="{{ field_id }}"
+    {% if accept %}accept="{{ accept }}"{% endif %}
+    {% if multiple %}multiple{% endif %}
+    {% if required %}required{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if error %}aria-invalid="true" aria-describedby="{{ field_id }}-error"{% elif help %}aria-describedby="{{ field_id }}-help"{% endif %}
+    class="block w-full rounded-md border bg-canvas px-3 py-2 text-sm text-ink file:mr-3 file:rounded file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-canvas
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink
+           disabled:cursor-not-allowed disabled:opacity-50
+           {% if error %}border-danger{% elif accent %}border-gold{% else %}border-border{% endif %}"
+  >
+  {% if error %}
+  <p id="{{ field_id }}-error" class="mt-1.5 text-sm text-danger">{{ error }}</p>
+  {% elif help %}
+  <p id="{{ field_id }}-help" class="mt-1.5 text-sm text-ink-subtle">{{ help }}</p>
+  {% endif %}
+</div>
+{% endwith %}

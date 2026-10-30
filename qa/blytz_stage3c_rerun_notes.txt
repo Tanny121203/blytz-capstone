@@ -1,0 +1,5 @@
+Stage 3c measurement rerun (ops-only cache disable; no repo edits)
+Disk sha256 expected:
+  editor_canvas.js     23677d154232624d747439db5a4653f95dfed253769e5e9c2a3ec93d9102e880
+  editor_tools.js      3000349d0d732b0a17083db6771ee6f3684c9d0555a242367c0787182d9689dd
+  editor_properties.js 89f07e7d6298c3255ec2e6a15ed3e8fb546e623d3c3f91b7ab9ecb1c32de6fc1

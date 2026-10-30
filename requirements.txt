@@ -1,0 +1,17 @@
+asgiref==3.12.1
+click==8.5.0
+Django==5.2.17
+django-allauth==65.19.6
+django-click==2.5.0
+django-environ==0.14.0
+django-tailwind-cli==4.8.1
+gunicorn==23.0.0
+Pillow>=10.0
+PyMySQL>=1.1.0
+semver==3.1.0
+sqlparse==0.6.0
+tzdata==2026.4
+whitenoise==6.12.0
+
+# Optional HTTPS transactional email (switch EMAIL_BACKEND + configure ANYMAIL)
+# django-anymail>=12.0

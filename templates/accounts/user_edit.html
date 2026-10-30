@@ -1,0 +1,61 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Manage {{ target.email }} — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-lg px-4 py-10 sm:px-6">
+  <nav class="text-sm text-ink-muted" aria-label="Breadcrumb">
+    <a href="{% url 'user_manage_list' %}" class="underline">Users</a>
+    <span class="mx-1">/</span>
+    <span class="text-ink">{{ target.email }}</span>
+  </nav>
+  <h1 class="mt-4 font-display text-3xl text-ink">Manage user</h1>
+  <p class="mt-1 text-ink-muted">{{ target.email }}</p>
+
+  <form method="post" class="mt-8 flex flex-col gap-4" id="user-edit-form" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="rounded-md border border-danger bg-danger/5 px-4 py-3 text-sm text-danger" role="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div>
+      <label class="mb-1.5 block text-sm font-medium" for="id_role">Role</label>
+      <select name="role" id="id_role" class="block w-full rounded-md border border-border px-3 py-2.5 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+        {% for value, label in form.fields.role.choices %}
+        <option value="{{ value }}" {% if form.role.value == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if form.role.errors %}<p class="mt-1 text-sm text-danger">{{ form.role.errors|striptags }}</p>{% endif %}
+    </div>
+
+    <div id="accounting-toggle-wrap" class="{% if form.role.value != 'staff' %}hidden{% endif %}">
+      <label class="inline-flex min-h-11 items-center gap-2 text-sm">
+        <input type="checkbox" name="can_edit_accounting" {% if form.can_edit_accounting.value %}checked{% endif %}>
+        Can edit accounting
+      </label>
+    </div>
+
+    <div>
+      <label class="inline-flex min-h-11 items-center gap-2 text-sm">
+        <input type="checkbox" name="is_active" {% if form.is_active.value %}checked{% endif %}>
+        Active
+      </label>
+      {% if form.is_active.errors %}<p class="mt-1 text-sm text-danger">{{ form.is_active.errors|striptags }}</p>{% endif %}
+    </div>
+
+    {% include "components/button.html" with label="Save changes" type="submit" variant="primary" %}
+  </form>
+</section>
+<script>
+  (function () {
+    var role = document.getElementById("id_role");
+    var wrap = document.getElementById("accounting-toggle-wrap");
+    if (!role || !wrap) return;
+    function sync() {
+      wrap.classList.toggle("hidden", role.value !== "staff");
+    }
+    role.addEventListener("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}

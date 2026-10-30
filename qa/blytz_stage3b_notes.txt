@@ -1,0 +1,13 @@
+Stage 3b measurement notes (outside repo; QA_SCRIPTS_IN_REPO=no)
+Date: 2026-10-10
+
+IMAGE_INSERT_BUDGET_RATIO=0.8 → budgetCap=1677721
+Near-max PNG ~571746 bytes: fit 2 images (after 763099 then 1526112 bytes);
+3rd rejected with budget message, 0 commits, objs unchanged.
+
+Text commits: insert+type Hello+exit=2; insert+exit no change=1; enter editing alone does not commit.
+
+AI: preview=0 commits; insert shape/image/text=1 commit each; candidates 2→1.
+
+Playwright: skipped (PLAYWRIGHT_APPROVED=no).
+)

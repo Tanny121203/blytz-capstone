@@ -1,0 +1,18 @@
+{% comment %}
+  Card — wrap content between card_open / card_close, or pass title/subtitle/body.
+  Vars: title, subtitle, accent, padding (sm|md|lg), class, body
+{% endcomment %}
+{% with padding=padding|default:"md" %}
+<section class="rounded-lg border bg-canvas
+                {% if accent %}border-gold{% else %}border-border{% endif %}
+                {% if padding == 'sm' %}p-4{% elif padding == 'lg' %}p-8{% else %}p-6{% endif %}
+                {{ class }}">
+  {% if title or subtitle %}
+  <header class="mb-4">
+    {% if title %}<h3 class="font-display text-lg text-ink">{{ title }}</h3>{% endif %}
+    {% if subtitle %}<p class="mt-1 text-sm text-ink-muted">{{ subtitle }}</p>{% endif %}
+  </header>
+  {% endif %}
+  {% if body %}{{ body }}{% endif %}
+</section>
+{% endwith %}

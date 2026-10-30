@@ -1,0 +1,12 @@
+{% extends "base_public.html" %}
+{% block title %}Not found — Blytz{% endblock %}
+{% block content %}
+<section class="mx-auto flex min-h-[50dvh] max-w-lg flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
+  <p class="font-mono text-sm text-ink-subtle">404</p>
+  <h1 class="mt-2 font-display text-3xl text-ink">Page not found</h1>
+  <p class="mt-3 text-ink-muted">That link may be outdated or the item was removed.</p>
+  <div class="mt-8">
+    {% include "components/button.html" with label="Go home" href="/" variant="primary" %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Blytz Stage 3 pre-audit probe (outside repo)</title>
+  <style>
+    body { font-family: Consolas, monospace; margin: 16px; }
+    #editor-root { width: 640px; height: 480px; border: 1px solid #ccc; position: relative; }
+    #editor-canvas-host { width: 100%; height: 100%; padding: 16px; box-sizing: border-box; }
+    #editor-canvas-wrap { display: inline-block; }
+    pre { white-space: pre-wrap; word-break: break-all; background: #f6f6f6; padding: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Blytz Stage 3 pre-audit probe</h1>
+  <p>Scratch page outside the repo. Loads Fabric + Blytz editor scripts from the project via relative file paths will not work; use the local static server.</p>
+  <div id="editor-root">
+    <div id="editor-canvas-host">
+      <div id="editor-canvas-wrap">
+        <canvas id="blytz-fabric-canvas" width="800" height="800"></canvas>
+      </div>
+      <p>caption</p>
+    </div>
+  </div>
+  <pre id="out">Loading…</pre>
+
+  <script src="http://127.0.0.1:8765/vendor/fabric/fabric.min.js"></script>
+  <script src="http://127.0.0.1:8765/js/editor_canvas.js"></script>
+  <script src="http://127.0.0.1:8765/js/editor_contract.js"></script>
+  <script>
+  (async function () {
+    var out = document.getElementById("out");
+    function log(obj) {
+      out.textContent = JSON.stringify(obj, null, 2);
+      window.__AUDIT__ = obj;
+    }
+    var report = { ok: false };
+
+    try {
+      report.fabricVersion = fabric && fabric.version;
+      report.classes = {};
+      [
+        "Rect", "Ellipse", "Circle", "Line", "Polygon", "Path",
+        "Textbox", "IText", "FabricImage", "Group", "ActiveSelection", "Image"
+      ].forEach(function (n) {
+        report.classes[n] = typeof fabric[n];
+      });
+
+      var empty = { version: fabric.version, objects: [] };
+      var lf = fabric.Canvas.prototype.loadFromJSON;
+      report.loadFromJSON_typeof = typeof lf;
+      // Create a temp canvas to test promise
+      var c = new fabric.Canvas(document.createElement("canvas"));
+      var lfResult = c.loadFromJSON(empty);
+      report.loadFromJSON_returns_thenable = !!(lfResult && typeof lfResult.then === "function");
+      await lfResult;
+      var toObj = c.toObject();
+      report.toObject_returns_object = typeof toObj === "object" && toObj !== null && !toObj.then;
+      report.toObject_has_then = !!(toObj && typeof toObj.then === "function");
+      var toJson = typeof c.toJSON === "function" ? c.toJSON() : null;
+      report.toJSON_typeof = typeof c.toJSON;
+      report.toJSON_returns_thenable = !!(toJson && typeof toJson.then === "function");
+      c.dispose();
+
+      // Wire Blytz editor
+      document.dispatchEvent(new Event("DOMContentLoaded"));
+      await new Promise(function (r) { setTimeout(r, 50); });
+      BlytzEditor.loadCanvasJSON({
+        schema_version: 1,
+        width: 800,
+        height: 800,
+        canvas: { version: fabric.version, objects: [] }
+      });
+      await BlytzEditor.whenReady();
+
+      // --- Custom property round trip ---
+      var fc = BlytzCanvas.getFabricCanvas();
+      var rect = new fabric.Rect({
+        left: 100, top: 120, width: 80, height: 60, fill: "#112233",
+        originX: "left", originY: "top"
+      });
+      rect.set("blytzCustom", "survive-me");
+      rect.blytzCustom = "survive-me";
+      fc.add(rect);
+      fc.requestRenderAll();
+      var beforeCustom = BlytzEditor.getCanvasJSON();
+      var obj0 = beforeCustom.canvas.objects[0] || {};
+      report.customProp_in_getCanvasJSON = Object.prototype.hasOwnProperty.call(obj0, "blytzCustom");
+      report.customProp_value_before = obj0.blytzCustom;
+      report.validate_with_extra_prop = BlytzEditor.validateCanvasJSON({
+        schema_version: 1,
+        width: 800,
+        height: 800,
+        canvas: {
+          version: fabric.version,
+          objects: [{
+            type: "Rect", left: 10, top: 10, width: 20, height: 20, fill: "#000",
+            blytzCustom: "x", originX: "left", originY: "top"
+          }]
+        }
+      });
+
+      // Force include via manual JSON then load round trip of getCanvasJSON path
+      BlytzEditor.loadCanvasJSON(beforeCustom);
+      await BlytzEditor.whenReady();
+      var afterLoad = BlytzEditor.getCanvasJSON();
+      var objAfter = (afterLoad.canvas.objects[0] || {});
+      report.customProp_after_get_load_roundtrip = Object.prototype.hasOwnProperty.call(objAfter, "blytzCustom");
+      report.customProp_value_after = objAfter.blytzCustom;
+
+      // Also test toObject with extra props list
+      var withExtra = fc.toObject(["selectable", "evented", "blytzCustom"]);
+      report.toObject_with_extra_includes_custom =
+        withExtra.objects[0] && withExtra.objects[0].blytzCustom === "survive-me";
+
+      // --- validate type smoke ---
+      function env(objects) {
+        return { schema_version: 1, width: 800, height: 800, canvas: { version: fabric.version, objects: objects } };
+      }
+      report.validate_types = {};
+      [
+        ["Rect", { type: "Rect", left: 1, top: 1, width: 10, height: 10, fill: "#000" }],
+        ["Ellipse", { type: "Ellipse", left: 1, top: 1, rx: 10, ry: 8, fill: "#000" }],
+        ["Line", { type: "Line", left: 1, top: 1, x1: 0, y1: 0, x2: 40, y2: 40 }],
+        ["Polygon", { type: "Polygon", left: 1, top: 1, points: [{x:0,y:0},{x:20,y:0},{x:10,y:20}], fill: "#000" }],
+        ["Path", { type: "Path", left: 1, top: 1, path: [["M",0,0],["L",20,20]] }],
+        ["Textbox", { type: "Textbox", left: 1, top: 1, text: "hi", width: 100 }],
+        ["ImageDataUrl", { type: "Image", left: 1, top: 1, src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" }]
+      ].forEach(function (pair) {
+        report.validate_types[pair[0]] = BlytzEditor.validateCanvasJSON(env([pair[1]]));
+      });
+
+      // --- ActiveSelection coordinate check ---
+      BlytzEditor.loadCanvasJSON(env([]));
+      await BlytzEditor.whenReady();
+      fc = BlytzCanvas.getFabricCanvas();
+      var a = new fabric.Rect({ left: 50, top: 60, width: 40, height: 30, fill: "#f00", originX: "left", originY: "top" });
+      var b = new fabric.Rect({ left: 200, top: 220, width: 40, height: 30, fill: "#0f0", originX: "left", originY: "top" });
+      fc.add(a); fc.add(b);
+      fc.requestRenderAll();
+      var beforeSel = BlytzEditor.getCanvasJSON();
+      report.coords_before_selection = beforeSel.canvas.objects.map(function (o) {
+        return { left: o.left, top: o.top, type: o.type };
+      });
+      fc.setActiveObject(new fabric.ActiveSelection([a, b], { canvas: fc }));
+      fc.requestRenderAll();
+      var duringSel = BlytzEditor.getCanvasJSON();
+      report.coords_during_activeSelection = duringSel.canvas.objects.map(function (o) {
+        return { left: o.left, top: o.top, type: o.type };
+      });
+      report.activeSelection_type_during = fc.getActiveObject() && fc.getActiveObject().type;
+      report.canvas_settings = {
+        selection: fc.selection,
+        preserveObjectStacking: fc.preserveObjectStacking,
+        uniformScaling: fc.uniformScaling,
+        uniScaleKey: fc.uniScaleKey
+      };
+
+      // --- Max image size UTF-8 measurement ---
+      // Build a ~600KB file as data URL via canvas
+      var imgCanvas = document.createElement("canvas");
+      imgCanvas.width = 900;
+      imgCanvas.height = 900;
+      var ctx = imgCanvas.getContext("2d");
+      // Fill noisy-ish pattern to reduce PNG compressibility toward size target
+      for (var y = 0; y < 900; y += 2) {
+        for (var x = 0; x < 900; x += 2) {
+          ctx.fillStyle = "rgb(" + ((x * y) % 255) + "," + (x % 255) + "," + (y % 255) + ")";
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+      var dataUrl = imgCanvas.toDataURL("image/png");
+      // Trim/pad to approach MAX_IMAGE_BYTES = 600*1024 for the *file* size.
+      // FileReader path uses file.size; here we measure embedded JSON size for a near-max data URL.
+      var approxBytes = new TextEncoder().encode(dataUrl).length;
+      report.synthetic_dataUrl_utf8_bytes = approxBytes;
+
+      function blobFromDataUrl(du) {
+        var parts = du.split(",");
+        var bin = atob(parts[1]);
+        var arr = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return new Blob([arr], { type: "image/png" });
+      }
+      var blob = blobFromDataUrl(dataUrl);
+      report.synthetic_file_bytes = blob.size;
+
+      // If over 600KB, downscale until <= 600KB; if under, accept closest
+      var attempt = 0;
+      while (blob.size > 600 * 1024 && attempt < 8) {
+        imgCanvas.width = Math.floor(imgCanvas.width * 0.85);
+        imgCanvas.height = Math.floor(imgCanvas.height * 0.85);
+        ctx = imgCanvas.getContext("2d");
+        for (var yy = 0; yy < imgCanvas.height; yy += 2) {
+          for (var xx = 0; xx < imgCanvas.width; xx += 2) {
+            ctx.fillStyle = "rgb(" + ((xx * yy) % 255) + "," + (xx % 255) + "," + (yy % 255) + ")";
+            ctx.fillRect(xx, yy, 2, 2);
+          }
+        }
+        dataUrl = imgCanvas.toDataURL("image/png");
+        blob = blobFromDataUrl(dataUrl);
+        attempt++;
+      }
+      // If still under, try jpeg quality to get closer to 600KB
+      if (blob.size < 500 * 1024) {
+        var q = 0.92;
+        while (q > 0.4) {
+          dataUrl = imgCanvas.toDataURL("image/jpeg", q);
+          blob = blobFromDataUrl(dataUrl);
+          if (blob.size >= 580 * 1024 && blob.size <= 600 * 1024) break;
+          if (blob.size > 600 * 1024) { q -= 0.05; continue; }
+          q += 0.02;
+          if (q > 0.98) break;
+          // grow canvas a bit
+          imgCanvas.width = Math.floor(imgCanvas.width * 1.05);
+          imgCanvas.height = Math.floor(imgCanvas.height * 1.05);
+          ctx = imgCanvas.getContext("2d");
+          for (var y2 = 0; y2 < imgCanvas.height; y2 += 2) {
+            for (var x2 = 0; x2 < imgCanvas.width; x2 += 2) {
+              ctx.fillStyle = "rgb(" + ((x2 * y2) % 255) + "," + (x2 % 255) + "," + (y2 % 255) + ")";
+              ctx.fillRect(x2, y2, 2, 2);
+            }
+          }
+          dataUrl = imgCanvas.toDataURL("image/jpeg", Math.min(0.95, q));
+          blob = blobFromDataUrl(dataUrl);
+          if (blob.size > 600 * 1024) break;
+        }
+      }
+      // Final clamp: if over limit, reduce quality until under
+      while (blob.size > 600 * 1024) {
+        dataUrl = imgCanvas.toDataURL("image/jpeg", 0.5);
+        blob = blobFromDataUrl(dataUrl);
+        imgCanvas.width = Math.floor(imgCanvas.width * 0.9);
+        imgCanvas.height = Math.floor(imgCanvas.height * 0.9);
+        if (imgCanvas.width < 100) break;
+      }
+      report.max_image_file_bytes_used = blob.size;
+      report.max_image_under_limit = blob.size <= 600 * 1024;
+
+      BlytzEditor.loadCanvasJSON(env([]));
+      await BlytzEditor.whenReady();
+      fc = BlytzCanvas.getFabricCanvas();
+      var fromURL = fabric.FabricImage.fromURL.bind(fabric.FabricImage);
+      var img = await fromURL(dataUrl, { crossOrigin: "anonymous" });
+      var maxEdge = 400;
+      var scale = Math.min(1, maxEdge / Math.max(img.width || 1, img.height || 1));
+      img.set({
+        left: 400, top: 400, originX: "center", originY: "center",
+        scaleX: scale, scaleY: scale
+      });
+      fc.add(img);
+      fc.requestRenderAll();
+      var jsonStr = JSON.stringify(BlytzEditor.getCanvasJSON());
+      report.getCanvasJSON_utf8_bytes_one_max_image = new TextEncoder().encode(jsonStr).length;
+      report.getCanvasJSON_char_length = jsonStr.length;
+      report.MAX_IMAGE_BYTES = BlytzCanvas.MAX_IMAGE_BYTES;
+      report.MAX_CANVAS_JSON_BYTES = BlytzCanvas.MAX_CANVAS_JSON_BYTES;
+
+      // preview/apply suppress commit?
+      var commits = 0;
+      BlytzEditor.onCommittedChange(function () { commits++; });
+      // add object should commit
+      fc.add(new fabric.Rect({ left: 10, top: 10, width: 5, height: 5, fill: "#00f" }));
+      await new Promise(function (r) { setTimeout(r, 30); });
+      report.commits_after_add = commits;
+      var beforePreviewCommits = commits;
+      await BlytzEditor.previewCanvasJSON(env([{ type: "Rect", left: 30, top: 30, width: 10, height: 10, fill: "#111" }]));
+      await new Promise(function (r) { setTimeout(r, 30); });
+      report.commits_after_preview = commits;
+      report.preview_fired_commit = commits > beforePreviewCommits;
+
+      report.ok = true;
+    } catch (err) {
+      report.ok = false;
+      report.error = String(err && err.stack || err);
+    }
+    log(report);
+  })();
+  </script>
+</body>
+</html>

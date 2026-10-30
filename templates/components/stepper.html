@@ -1,0 +1,29 @@
+{% comment %}
+  Stepper
+  Vars: steps — list of {label, description?}, current (1-based index), class
+{% endcomment %}
+{% with current=current|default:1 %}
+<nav aria-label="Progress" class="{{ class }}">
+  <ol class="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-0">
+    {% for step in steps %}
+    <li class="relative flex flex-1 items-start gap-3 sm:flex-col sm:items-center sm:text-center">
+      {% if not forloop.last %}
+      <div class="absolute left-4 top-8 hidden h-[calc(100%-2rem)] w-px bg-border sm:left-1/2 sm:top-4 sm:block sm:h-px sm:w-full sm:-translate-x-0" aria-hidden="true"></div>
+      {% endif %}
+      <span class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-medium
+                   {% if forloop.counter < current %}border-ink bg-ink text-canvas
+                   {% elif forloop.counter == current %}border-ink bg-canvas text-ink ring-2 ring-ink ring-offset-2
+                   {% else %}border-border bg-canvas text-ink-subtle{% endif %}">
+        {% if forloop.counter < current %}✓{% else %}{{ forloop.counter }}{% endif %}
+      </span>
+      <div class="min-w-0 pt-1 sm:pt-2">
+        <p class="text-sm font-medium {% if forloop.counter <= current %}text-ink{% else %}text-ink-subtle{% endif %}">{{ step.label }}</p>
+        {% if step.description %}
+        <p class="mt-0.5 text-xs text-ink-muted">{{ step.description }}</p>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</nav>
+{% endwith %}

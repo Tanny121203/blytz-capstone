@@ -1,0 +1,39 @@
+{% extends base_template %}
+
+{% block title %}Profile — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-lg px-4 py-12 sm:px-6">
+  <header class="mb-8">
+    <h1 class="font-display text-3xl text-ink">Your profile</h1>
+    <p class="mt-2 text-sm text-ink-muted">{{ user.get_role_display }}</p>
+  </header>
+
+  <form method="post" class="flex flex-col gap-4" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="rounded-md border border-danger bg-danger/5 px-4 py-3 text-sm text-danger">
+      {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    {% for field in form %}
+    <div class="w-full">
+      <label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-medium text-ink">{{ field.label }}</label>
+      <input
+        type="{% if field.name == 'email' %}email{% else %}{{ field.field.widget.input_type|default:'text' }}{% endif %}"
+        name="{{ field.html_name }}"
+        id="{{ field.id_for_label }}"
+        value="{{ field.value|default_if_none:'' }}"
+        class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink {% if field.errors %}border-danger{% endif %}"
+      >
+      {% if field.errors %}
+      <p class="mt-1.5 text-sm text-danger">{{ field.errors|striptags }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% include "components/button.html" with label="Save changes" type="submit" variant="primary" %}
+  </form>
+</section>
+{% endblock %}

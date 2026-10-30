@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Blytz Stage 3a verification probe</title>
+  <link rel="stylesheet" href="http://127.0.0.1:8765/css/tailwind.css" />
+  <link rel="stylesheet" href="http://127.0.0.1:8765/css/responsive.css" />
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: Georgia, serif; }
+    /* Stand-in for customer chrome so calc(100dvh - 8rem) matches product shell. */
+    .fake-nav { height: 4rem; background: #eee; flex: 0 0 auto; }
+    body { display: flex; flex-direction: column; }
+    .editor-shell[data-editor-page] { flex: 1 1 auto; }
+  </style>
+</head>
+<body>
+  <div class="fake-nav"></div>
+  <div class="editor-shell flex flex-col" data-editor-page data-already-submitted="0">
+    <div class="border-b" style="padding:8px">Header</div>
+    <div class="editor-workspace flex min-h-0 flex-1 flex-col lg:flex-row">
+      <aside id="editor-toolbar" class="editor-toolbar" aria-label="Editor tools">
+        <div class="editor-toolbar-inner">
+          <button type="button" data-editor-action="select" aria-label="Select" aria-pressed="true" class="editor-toolbar-btn is-active">Select</button>
+          <button type="button" data-editor-action="multi-select" aria-label="Multi-select" aria-pressed="false" class="editor-toolbar-btn">Multi</button>
+          <button type="button" data-editor-action="add-text" aria-label="Add text" class="editor-toolbar-btn">Text</button>
+          <button type="button" data-editor-action="add-image" aria-label="Upload image" class="editor-toolbar-btn">Image</button>
+          <input type="file" data-editor-image-input class="sr-only" tabindex="-1" />
+          <button type="button" data-editor-action="delete" aria-label="Delete selected" class="editor-toolbar-btn">Delete</button>
+          <button type="button" data-editor-action="elements" aria-disabled="true" disabled title="Elements — coming soon" class="editor-toolbar-btn">Elements</button>
+          <button type="button" data-editor-action="layers" aria-disabled="true" disabled title="Layers — coming soon" class="editor-toolbar-btn">Layers</button>
+        </div>
+        <p data-editor-tool-feedback class="editor-toolbar-feedback"></p>
+      </aside>
+      <div id="editor-root" class="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface" aria-label="Design canvas">
+        <div id="editor-canvas-host" class="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden p-4">
+          <div id="editor-canvas-wrap" class="overflow-hidden rounded-md border border-border bg-canvas shadow-sm">
+            <canvas id="blytz-fabric-canvas" width="800" height="800"></canvas>
+          </div>
+          <p class="text-center text-xs">Working canvas 800×800</p>
+        </div>
+      </div>
+      <div id="ai-assistant-backdrop" class="fixed inset-0 z-40 hidden bg-ink/50 lg:hidden"></div>
+      <aside id="ai-assistant" class="ai-assistant-panel is-open flex w-full max-w-md flex-col border-border bg-canvas lg:max-w-sm lg:border-l" aria-label="AI Assistant">
+        <div class="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2>AI Assistant</h2>
+        </div>
+        <div data-ai-messages class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"></div>
+        <div data-ai-turn class="ai-turn-panel hidden shrink-0 border-t border-border px-4 py-3"></div>
+        <p data-ai-status></p>
+        <form data-ai-form class="border-t border-border p-4">
+          <textarea data-ai-input rows="2"></textarea>
+          <button type="submit" data-ai-send>Send</button>
+        </form>
+      </aside>
+    </div>
+  </div>
+  <pre id="out">Running…</pre>
+
+  <script src="http://127.0.0.1:8765/vendor/fabric/fabric.min.js"></script>
+  <script src="http://127.0.0.1:8765/js/editor_canvas.js"></script>
+  <script src="http://127.0.0.1:8765/js/editor_contract.js"></script>
+  <script src="http://127.0.0.1:8765/js/ai_chat.js"></script>
+  <script>
+  (async function () {
+    const out = document.getElementById("out");
+    const report = { ok: false, viewports: {}, commits: {}, blytzId: {}, activeSelection: {}, allowlist: {}, ai: {} };
+    function log() { out.textContent = JSON.stringify(report, null, 2); window.__S3A__ = report; }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    function measureLayout() {
+      const shell = document.querySelector(".editor-shell");
+      const wrap = document.getElementById("editor-canvas-wrap");
+      const root = document.getElementById("editor-root");
+      const toolbar = document.getElementById("editor-toolbar");
+      const fc = BlytzCanvas.getFabricCanvas();
+      return {
+        logical: fc ? { w: fc.width, h: fc.height } : null,
+        wrapStyle: wrap ? { w: wrap.style.width, h: wrap.style.height, clientW: wrap.clientWidth, clientH: wrap.clientHeight } : null,
+        rootClient: root ? { w: root.clientWidth, h: root.clientHeight } : null,
+        toolbar: toolbar ? { w: toolbar.getBoundingClientRect().width, h: toolbar.getBoundingClientRect().height, parentIsRoot: root && root.contains(toolbar) } : null,
+        shellHeight: shell ? shell.getBoundingClientRect().height : null,
+        docScrollHeight: document.documentElement.scrollHeight,
+        bodyScrollWidth: document.body.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+        overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    }
+
+    async function setViewport(w, h) {
+      // Emulation is applied by CDP from the harness; here we just resize via CSS shell if needed.
+      document.documentElement.style.width = w + "px";
+      document.body.style.width = w + "px";
+      document.documentElement.style.height = h + "px";
+      // Trigger resize handlers
+      window.dispatchEvent(new Event("resize"));
+      await sleep(80);
+      if (BlytzCanvas.applyResponsiveSize) BlytzCanvas.applyResponsiveSize();
+      await sleep(40);
+    }
+
+    try {
+      // Boot editor modules (DOMContentLoaded may have already fired)
+      document.dispatchEvent(new Event("DOMContentLoaded"));
+      await sleep(30);
+      BlytzEditor.loadCanvasJSON({
+        schema_version: 1, width: 800, height: 800,
+        canvas: { version: fabric.version, objects: [] }
+      });
+      await BlytzEditor.whenReady();
+
+      // DOM structure check
+      const toolbar = document.getElementById("editor-toolbar");
+      const root = document.getElementById("editor-root");
+      report.layout = {
+        toolbarSiblingOfRoot: !!(toolbar && root && toolbar.parentElement === root.parentElement && !root.contains(toolbar)),
+        toolbarParentId: toolbar && toolbar.parentElement && toolbar.parentElement.className,
+      };
+
+      // ---- Commit counting helper ----
+      let commitCount = 0;
+      let lastCommitLabel = null;
+      BlytzEditor.onCommittedChange(function () { commitCount += 1; });
+
+      const fc = BlytzCanvas.getFabricCanvas();
+
+      // Select/deselect = 0 commits
+      const r1 = new fabric.Rect({ left: 40, top: 40, width: 50, height: 40, fill: "#c00" });
+      const r2 = new fabric.Rect({ left: 140, top: 80, width: 50, height: 40, fill: "#0a0" });
+      const r3 = new fabric.Rect({ left: 240, top: 120, width: 50, height: 40, fill: "#00c" });
+      commitCount = 0;
+      BlytzCanvas.commitEdit("seed", function () {
+        [r1, r2, r3].forEach(function (o) { o.blytzId = o.blytzId || ("seed_" + Math.random().toString(36).slice(2,7)); fc.add(o); });
+        return true;
+      });
+      const commitsAfterSeed = commitCount;
+
+      commitCount = 0;
+      fc.setActiveObject(r1); fc.requestRenderAll();
+      fc.discardActiveObject(); fc.requestRenderAll();
+      fc.setActiveObject(new fabric.ActiveSelection([r1, r2], { canvas: fc }));
+      fc.requestRenderAll();
+      report.commits.selectDeselect = commitCount;
+
+      // Delete 3 selected = 1 commit
+      fc.setActiveObject(new fabric.ActiveSelection([r1, r2, r3], { canvas: fc }));
+      fc.requestRenderAll();
+      commitCount = 0;
+      document.querySelector("[data-editor-action='delete']").click();
+      await sleep(40);
+      report.commits.deleteThree = commitCount;
+      report.commits.objectsAfterDelete = fc.getObjects().length;
+
+      // Re-add for drag / text tests
+      BlytzEditor.loadCanvasJSON({ schema_version: 1, width: 800, height: 800, canvas: { version: fabric.version, objects: [] } });
+      await BlytzEditor.whenReady();
+
+      // addText via toolbar = 1 commit
+      commitCount = 0;
+      document.querySelector("[data-editor-action='add-text']").click();
+      await sleep(40);
+      report.commits.addText = commitCount;
+
+      // Drag simulation via object:modified = 1
+      const t = fc.getObjects()[0];
+      commitCount = 0;
+      t.set({ left: (t.left || 0) + 30, top: (t.top || 0) + 20 });
+      t.setCoords();
+      fc.fire("object:modified", { target: t });
+      await sleep(20);
+      report.commits.oneDrag = commitCount;
+
+      // Text editing session = 1 commit on exit
+      commitCount = 0;
+      if (t && t.enterEditing) {
+        t.enterEditing();
+        fc.fire("text:changed", { target: t });
+        t.text = (t.text || "") + " Hi";
+        fc.fire("text:changed", { target: t });
+        t.exitEditing();
+        // Fabric may fire object:modified; our skip flag should keep count at 1
+        fc.fire("object:modified", { target: t });
+        await sleep(30);
+      }
+      report.commits.textSession = commitCount;
+
+      // ---- blytzId round trip ----
+      BlytzCanvas.commitEdit("id-seed", function () {
+        const a = new fabric.Rect({ left: 10, top: 10, width: 20, height: 20, fill: "#111" });
+        const b = new fabric.IText("x", { left: 60, top: 60, fontSize: 20 });
+        a.blytzId = "fixed_id_a";
+        b.blytzId = "fixed_id_b";
+        fc.add(a); fc.add(b);
+        return true;
+      });
+      // Clear canvas first more cleanly
+      await BlytzEditor.loadCanvasJSON({ schema_version: 1, width: 800, height: 800, canvas: { version: fabric.version, objects: [] } });
+      await BlytzEditor.whenReady();
+      const idA = "fixed_id_a";
+      const idB = "fixed_id_b";
+      BlytzCanvas.commitEdit("id-seed2", function () {
+        const a = new fabric.Rect({ left: 10, top: 10, width: 20, height: 20, fill: "#111" });
+        const b = new fabric.IText("x", { left: 60, top: 60, fontSize: 20 });
+        a.blytzId = idA;
+        b.blytzId = idB;
+        fc.add(a); fc.add(b);
+        return true;
+      });
+      const beforeIds = BlytzEditor.getCanvasJSON().canvas.objects.map(o => o.blytzId);
+      BlytzEditor.loadCanvasJSON(BlytzEditor.getCanvasJSON());
+      await BlytzEditor.whenReady();
+      const afterIds = BlytzEditor.getCanvasJSON().canvas.objects.map(o => o.blytzId);
+      report.blytzId = { beforeIds, afterIds, unchanged: JSON.stringify(beforeIds) === JSON.stringify(afterIds) };
+
+      // ---- ActiveSelection moved + scaled ----
+      await BlytzEditor.loadCanvasJSON({ schema_version: 1, width: 800, height: 800, canvas: { version: fabric.version, objects: [] } });
+      await BlytzEditor.whenReady();
+      const fc2 = BlytzCanvas.getFabricCanvas();
+      const oa = new fabric.Rect({ left: 50, top: 60, width: 40, height: 30, fill: "#f00", originX: "left", originY: "top" });
+      const ob = new fabric.Rect({ left: 200, top: 220, width: 40, height: 30, fill: "#0f0", originX: "left", originY: "top" });
+      BlytzCanvas.commitEdit("as-seed", function () { fc2.add(oa); fc2.add(ob); return true; });
+      const sel = new fabric.ActiveSelection([oa, ob], { canvas: fc2 });
+      fc2.setActiveObject(sel);
+      sel.set({ left: sel.left + 40, top: sel.top + 30, scaleX: 1.25, scaleY: 1.25 });
+      sel.setCoords();
+      fc2.requestRenderAll();
+      const during = BlytzEditor.getCanvasJSON().canvas.objects.map(o => ({ left: o.left, top: o.top, scaleX: o.scaleX, scaleY: o.scaleY, type: o.type }));
+      fc2.discardActiveObject();
+      // After discard, objects should have transformed coords applied
+      fc2.requestRenderAll();
+      const afterDeselect = BlytzEditor.getCanvasJSON().canvas.objects.map(o => ({ left: o.left, top: o.top, scaleX: o.scaleX, scaleY: o.scaleY, type: o.type }));
+      report.activeSelection = { during, afterDeselect, agree: JSON.stringify(during) === JSON.stringify(afterDeselect) };
+
+      // ---- Allowlist ----
+      report.allowlist.groupRejected = BlytzEditor.validateCanvasJSON({
+        schema_version: 1, width: 800, height: 800,
+        canvas: { version: fabric.version, objects: [{ type: "Group", objects: [] }] }
+      });
+      report.allowlist.httpImageRejected = BlytzEditor.validateCanvasJSON({
+        schema_version: 1, width: 800, height: 800,
+        canvas: { version: fabric.version, objects: [{ type: "Image", src: "https://example.com/x.png" }] }
+      });
+      report.allowlist.rectOk = BlytzEditor.validateCanvasJSON({
+        schema_version: 1, width: 800, height: 800,
+        canvas: { version: fabric.version, objects: [{ type: "Rect", left: 1, top: 1, width: 2, height: 2, fill: "#000" }] }
+      }).ok;
+
+      // Saved design with disallowed type via loadCanvasJSON (not validate)
+      BlytzEditor.loadCanvasJSON({
+        schema_version: 1, width: 800, height: 800,
+        canvas: { version: fabric.version, objects: [{ type: "triangle", left: 1, top: 1, width: 10, height: 10, fill: "#000" }] }
+      });
+      await BlytzEditor.whenReady();
+      report.allowlist.loadDisallowedSaved = {
+        loadState: BlytzEditor.getLoadState(),
+        canPersist: BlytzEditor.canPersist(),
+        // Fabric may or may not hydrate unknown types; report object count + types
+        objects: BlytzEditor.getCanvasJSON().canvas.objects.map(o => o.type),
+      };
+
+      // ---- AI preview commits + canPersist + layout stability ----
+      await BlytzEditor.loadCanvasJSON({ schema_version: 1, width: 800, height: 800, canvas: { version: fabric.version, objects: [] } });
+      await BlytzEditor.whenReady();
+
+      // Viewport measurements
+      const viewports = [
+        [390, 844], [768, 1024], [1024, 768], [1440, 900], [1920, 1080]
+      ];
+      // Note: real device metrics come from CDP Emulation; we still measure DOM here per requested size hint.
+      for (const [w, h] of viewports) {
+        await setViewport(w, h);
+        const before = measureLayout();
+        // Trigger AI mock prompt
+        commitCount = 0;
+        const input = document.querySelector("[data-ai-input]");
+        const form = document.querySelector("[data-ai-form]");
+        input.value = "Bold wordmark across the chest";
+        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+        // Wait for mock delay (~450ms) + preview
+        await sleep(900);
+        const mid = measureLayout();
+        const canPersistDuring = BlytzEditor.canPersist();
+        const loadStateDuring = BlytzEditor.getLoadState();
+        // Switch candidate if two buttons
+        const btns = document.querySelectorAll("[data-ai-candidate]");
+        if (btns.length > 1) {
+          btns[1].click();
+          await sleep(700);
+        }
+        const after = measureLayout();
+        report.viewports[w + "x" + h] = {
+          before, mid, after,
+          wrapUnchanged: before.wrapStyle && after.wrapStyle && before.wrapStyle.w === after.wrapStyle.w && before.wrapStyle.h === after.wrapStyle.h,
+          shellUnchanged: before.shellHeight === after.shellHeight,
+          scrollUnchanged: before.docScrollHeight === after.docScrollHeight,
+          commitsDuringAi: commitCount,
+          canPersistAfterPreview: BlytzEditor.canPersist(),
+          canPersistSample: canPersistDuring,
+          loadStateSample: loadStateDuring,
+          candidateButtons: btns.length,
+        };
+        // Only run AI once fully; for other viewports just measure layout
+        break;
+      }
+      // Remaining viewports: layout only
+      for (const [w, h] of viewports.slice(1)) {
+        await setViewport(w, h);
+        report.viewports[w + "x" + h] = { layoutOnly: measureLayout() };
+      }
+
+      // First real edit discards sibling
+      const candBefore = document.querySelectorAll("[data-ai-candidate]").length;
+      commitCount = 0;
+      // Ensure an active candidate exists
+      const activeBtn = document.querySelector("[data-ai-candidate]");
+      if (activeBtn) {
+        // drag commit
+        const obj = BlytzCanvas.getFabricCanvas().getObjects()[0];
+        if (obj) {
+          obj.set({ left: (obj.left || 0) + 15 });
+          obj.setCoords();
+          BlytzCanvas.getFabricCanvas().fire("object:modified", { target: obj });
+          await sleep(50);
+        }
+      }
+      const candAfter = document.querySelectorAll("[data-ai-candidate]").length;
+      report.ai = {
+        candidatesBeforeEdit: candBefore,
+        candidatesAfterFirstEdit: candAfter,
+        commitsOnFirstEdit: commitCount,
+        discardedSibling: candBefore === 2 && candAfter === 1,
+      };
+
+      // preview/apply commit check
+      commitCount = 0;
+      await BlytzEditor.previewCanvasJSON({
+        schema_version: 1, width: 800, height: 800,
+        canvas: { version: fabric.version, objects: [{ type: "Rect", left: 5, top: 5, width: 8, height: 8, fill: "#000" }] }
+      });
+      await sleep(40);
+      report.commits.preview = commitCount;
+      commitCount = 0;
+      await BlytzEditor.applyCanvasJSON({
+        schema_version: 1, width: 800, height: 800,
+        canvas: { version: fabric.version, objects: [{ type: "Rect", left: 9, top: 9, width: 8, height: 8, fill: "#111" }] }
+      });
+      await sleep(40);
+      report.commits.apply = commitCount;
+
+      report.commits.afterSeed = commitsAfterSeed;
+      report.ok = true;
+    } catch (err) {
+      report.ok = false;
+      report.error = String(err && err.stack || err);
+    }
+    log();
+  })();
+  </script>
+</body>
+</html>

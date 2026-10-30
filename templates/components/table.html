@@ -1,0 +1,22 @@
+{% comment %}
+  Table shell — pass headers (list of strings) and rows as HTML via body,
+  or use table_open / rows manually in gallery.
+  Vars: headers, caption, class, accent
+{% endcomment %}
+<div class="w-full overflow-x-auto {{ class }}">
+  <table class="w-full min-w-[32rem] border-collapse text-left text-sm">
+    {% if caption %}<caption class="mb-3 text-left text-sm text-ink-muted">{{ caption }}</caption>{% endif %}
+    {% if headers %}
+    <thead>
+      <tr class="border-b {% if accent %}border-gold{% else %}border-border-strong{% endif %}">
+        {% for h in headers %}
+        <th scope="col" class="px-3 py-2 font-medium text-ink">{{ h }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    {% endif %}
+    <tbody class="divide-y divide-border">
+      {{ body }}
+    </tbody>
+  </table>
+</div>

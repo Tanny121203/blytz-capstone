@@ -1,0 +1,15 @@
+{% comment %}
+  EmptyState
+  Vars: title, description, action_label, action_href, class
+{% endcomment %}
+<div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface px-6 py-12 text-center {{ class }}">
+  <h3 class="font-display text-xl text-ink">{{ title|default:"Nothing here yet" }}</h3>
+  {% if description %}
+  <p class="mt-2 max-w-sm text-sm text-ink-muted">{{ description }}</p>
+  {% endif %}
+  {% if action_label and action_href %}
+  <div class="mt-6">
+    {% include "components/button.html" with label=action_label href=action_href variant="primary" %}
+  </div>
+  {% endif %}
+</div>

@@ -1,0 +1,86 @@
+{% comment %}
+  Blytz Logo Wordmark
+  Usage: {% include "partials/logo.html" with size="sm" %}
+  Sizes: sm (navbar), md (default), lg (footer)
+{% endcomment %}
+{% with size=size|default:"md" %}
+<a href="{% url 'home' %}" class="blytz-logo blytz-logo--{{ size }} inline-block hover:brightness-110 transition-all no-underline">
+  <div class="blytz-logo__main">BLYTZ</div>
+  <div class="blytz-logo__sub">CLOTHING</div>
+</a>
+
+<style>
+  /* Logo base styles */
+  .blytz-logo {
+    text-decoration: none;
+    display: inline-block;
+    line-height: 1;
+  }
+  
+  .blytz-logo__main {
+    font-family: 'Permanent Marker', 'Rock Salt', 'Rubik Wet Paint', 'Bebas Neue', cursive;
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    transform: skewX(-8deg);
+    background: linear-gradient(180deg, #E6C65A 0%, #D4AF37 50%, #B8942B 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+    filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.2));
+    position: relative;
+  }
+  
+  .blytz-logo__sub {
+    font-family: 'Inter', 'Montserrat', sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    color: #D9D9D9;
+    text-align: justify;
+    text-align-last: justify;
+    margin-top: 2px;
+    width: 100%;
+  }
+  
+  /* Size variants */
+  .blytz-logo--sm .blytz-logo__main {
+    font-size: 36px;
+    line-height: 0.9;
+  }
+  .blytz-logo--sm .blytz-logo__sub {
+    font-size: 8px;
+    letter-spacing: 0.5em;
+  }
+  
+  .blytz-logo--md .blytz-logo__main {
+    font-size: 44px;
+    line-height: 0.9;
+  }
+  .blytz-logo--md .blytz-logo__sub {
+    font-size: 9px;
+    letter-spacing: 0.6em;
+  }
+  
+  .blytz-logo--lg .blytz-logo__main {
+    font-size: 72px;
+    line-height: 0.9;
+  }
+  .blytz-logo--lg .blytz-logo__sub {
+    font-size: 14px;
+    letter-spacing: 0.7em;
+    margin-top: 4px;
+  }
+  
+  /* Mobile adjustments */
+  @media (max-width: 640px) {
+    .blytz-logo--sm .blytz-logo__main {
+      font-size: 32px;
+    }
+    .blytz-logo--sm .blytz-logo__sub {
+      font-size: 7px;
+    }
+  }
+</style>
+{% endwith %}

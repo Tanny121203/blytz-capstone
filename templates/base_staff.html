@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-bg-page">
+  
+  {# Sidebar #}
+  {% include "partials/sidebar.html" %}
+
+  {# Top bar #}
+  {% include "partials/topbar.html" %}
+
+  {# Main content area (offset by sidebar + topbar) #}
+  <main class="ml-60 pt-16">
+    <div class="p-6">
+      {% block staff_content %}{% endblock %}
+    </div>
+  </main>
+
+</div>
+{% endblock %}
+
+{# Override footer for staff pages — compact, offset #}
+{% block footer %}
+<footer class="ml-60 border-t border-border bg-bg-surface py-6 px-6">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs text-text-subtle">
+    <p>© {% now "Y" %} Blytz Clothing. All rights reserved.</p>
+    <p class="flex items-center gap-1.5">
+      <span class="relative flex h-1.5 w-1.5">
+        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
+        <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-success"></span>
+      </span>
+      System operational
+    </p>
+  </div>
+</footer>
+{% endblock %}

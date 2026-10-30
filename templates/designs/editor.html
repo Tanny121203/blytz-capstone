@@ -1,0 +1,749 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Editor · {{ design.title }} — Blytz{% endblock %}
+
+{% block extra_head %}
+<script src="{% static 'vendor/fabric/fabric.min.js' %}?v=stage-h1"></script>
+<script src="{% static 'js/editor_canvas.js' %}?v=stage-r2"></script>
+<script src="{% static 'js/editor_garments.js' %}?v=stage-h1"></script>
+<script src="{% static 'js/editor_tools.js' %}?v=stage-h1"></script>
+<script src="{% static 'js/remove_bg_client.js' %}?v=stage-r2"></script>
+<script src="{% static 'js/editor_properties.js' %}?v=stage-r2"></script>
+<script src="{% static 'js/editor_contract.js' %}?v=stage-h1"></script>
+<script src="{% static 'js/editor_chrome.js' %}?v=stage-h1"></script>
+<script src="{% static 'js/ai_chat.js' %}?v=stage-h1" defer></script>
+<script src="{% static 'js/payment_details.js' %}?v=stage-h1" defer></script>
+<script src="{% static 'js/editor_page.js' %}?v=stage-h1" defer></script>
+{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<div class="editor-shell flex flex-col"
+     data-editor-page
+     data-save-url="{% url 'design_save' design.pk %}"
+     data-submit-url="{% url 'design_submit' design.pk %}"
+     data-ai-suggest-url="{% url 'design_ai_suggest' design.pk %}"
+     data-ai-suggest-enabled="{% if ai_suggest_enabled %}1{% else %}0{% endif %}"
+     data-remove-bg-client="1"
+     data-payment-window-minutes="{{ payment_window_minutes }}"
+     data-proof-max-mb="{{ PROOF_MAX_UPLOAD_MB }}"
+     data-already-submitted="{% if already_submitted %}1{% else %}0{% endif %}"
+     data-garment-template="{{ design.garment_template|default:'tee'|escape }}"
+     data-garment-color="{{ design.garment_color|default:''|escape }}"
+     data-garments-base="{% static 'garments/' %}"
+     data-canvas-json="{{ canvas_json_initial|escape }}">
+
+  <div class="border-b border-border bg-canvas" style="padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-6 sm:py-3 lg:max-w-none lg:px-6">
+      <div class="min-w-0 flex-1">
+        <p class="hidden text-xs text-ink-subtle sm:block">
+          <a href="{% url 'app_home' %}" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Dashboard</a>
+          <span class="mx-1">/</span>
+          <a href="{% url 'design_list' %}" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Designs</a>
+          <span class="mx-1">/</span>
+          <span data-editor-title-crumb>{{ design.title }}</span>
+        </p>
+        {% if already_submitted %}
+        <h1 class="truncate font-display text-lg text-ink sm:text-2xl">{{ design.title }}</h1>
+        {% else %}
+        <label class="sr-only" for="editor-design-title">Design title</label>
+        <input id="editor-design-title"
+               type="text"
+               name="title"
+               maxlength="200"
+               value="{{ design.title }}"
+               data-editor-title
+               class="mt-0.5 w-full max-w-xl truncate rounded-md border border-transparent bg-transparent px-1 py-0.5 font-display text-lg text-ink hover:border-border focus:border-border-strong focus:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:text-2xl">
+        {% endif %}
+      </div>
+      <div class="editor-top-actions flex flex-wrap items-center gap-2 sm:gap-3">
+        <div class="editor-status-stack mr-1 max-w-[10rem] sm:mr-2 sm:max-w-[16rem]">
+          <p class="editor-save-status truncate text-xs text-ink-muted sm:text-sm"
+             data-editor-save-status
+             role="status"
+             aria-live="polite"
+             aria-atomic="true"></p>
+          <p class="editor-flow-status truncate text-xs text-ink-muted sm:text-sm"
+             data-editor-status
+             aria-live="polite"></p>
+        </div>
+        <div class="editor-undo-redo">
+          <button type="button"
+                  data-editor-undo
+                  disabled
+                  aria-label="Undo"
+                  class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-border-strong bg-canvas px-2.5 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40 sm:px-3">
+            <svg class="editor-undo-redo-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+              <path d="M4.5 6.5H11a3 3 0 0 1 0 6H9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6.5 4.5 4.5 6.5 6.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Undo</span>
+          </button>
+          <button type="button"
+                  data-editor-redo
+                  disabled
+                  aria-label="Redo"
+                  class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-border-strong bg-canvas px-2.5 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40 sm:px-3">
+            <svg class="editor-undo-redo-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+              <path d="M11.5 6.5H5a3 3 0 0 0 0 6h1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9.5 4.5 11.5 6.5 9.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Redo</span>
+          </button>
+        </div>
+        <div class="editor-top-actions-secondary">
+          <button type="button"
+                  data-ai-open
+                  class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink lg:hidden">
+            AI
+          </button>
+          <button type="button"
+                  data-drawer-open="editor-tools"
+                  class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+            Design info
+          </button>
+        </div>
+        <button type="button"
+                data-editor-preview
+                class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-3 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:px-4">
+          Preview
+        </button>
+        <button type="button"
+                data-editor-save
+                class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-3 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:px-4">
+          Save
+        </button>
+        <button type="button"
+                data-editor-submit
+                {% if already_submitted %}disabled{% endif %}
+                class="inline-flex min-h-11 items-center rounded-md bg-ink px-3 py-2 text-sm font-medium text-canvas hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40 sm:px-4">
+          {% if already_submitted %}Submitted{% else %}Submit{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-workspace flex min-h-0 flex-1 flex-col lg:flex-row">
+    {# Toolbar is a sibling of #editor-root (not a child) so it does not affect ResizeObserver sizing of the artboard column. #}
+    <aside id="editor-toolbar"
+           class="editor-toolbar"
+           aria-label="Editor tools">
+      <div class="editor-toolbar-inner">
+        <button type="button"
+                data-editor-action="add-text"
+                aria-label="Text"
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">T</span>
+          <span class="editor-toolbar-label">Text</span>
+        </button>
+        <button type="button"
+                data-editor-action="add-image"
+                aria-label="Image"
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">▣</span>
+          <span class="editor-toolbar-label">Image</span>
+        </button>
+        <input type="file"
+               data-editor-image-input
+               accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp,image/*"
+               capture="environment"
+               class="sr-only"
+               tabindex="-1"
+               aria-hidden="true">
+        <button type="button"
+                data-editor-action="garment"
+                aria-label="Garment"
+                aria-expanded="false"
+                aria-controls="editor-tool-panel"
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">G</span>
+          <span class="editor-toolbar-label">Garment</span>
+        </button>
+        <button type="button"
+                data-ai-open
+                aria-label="AI Assistant"
+                class="editor-toolbar-btn lg:hidden">
+          <span aria-hidden="true" class="editor-toolbar-icon">✦</span>
+          <span class="editor-toolbar-label">AI</span>
+        </button>
+        <button type="button"
+                data-editor-action="layers"
+                aria-label="Layers"
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">▤</span>
+          <span class="editor-toolbar-label">Layers</span>
+        </button>
+        <button type="button"
+                data-editor-action="auto-layout"
+                aria-label="Auto layout"
+                title="Arrange images and text on the print panel (rule-based)"
+                class="editor-toolbar-btn"
+                data-editor-phone-hide>
+          <span aria-hidden="true" class="editor-toolbar-icon">▦</span>
+          <span class="editor-toolbar-label">Auto Layout</span>
+        </button>
+        {% comment %}Toolbar Front/Back — always reachable; also mirrored by overlay toggle{% endcomment %}
+        <button type="button"
+                data-editor-action="toggle-view"
+                id="editor-view-toggle-btn"
+                aria-label="Garment view: Front"
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon" data-view-toggle-icon>F</span>
+          <span class="editor-toolbar-label" data-view-toggle-label>Front</span>
+        </button>
+        <button type="button"
+                data-editor-action="select"
+                aria-label="Select"
+                aria-pressed="true"
+                data-editor-phone-hide
+                class="editor-toolbar-btn is-active">
+          <span aria-hidden="true" class="editor-toolbar-icon">↖</span>
+          <span class="editor-toolbar-label">Select</span>
+        </button>
+        <button type="button"
+                data-editor-action="multi-select"
+                aria-label="Multi-select"
+                aria-pressed="false"
+                data-editor-phone-hide
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">☰</span>
+          <span class="editor-toolbar-label">Multi</span>
+        </button>
+        <button type="button"
+                data-editor-action="delete"
+                aria-label="Delete selected"
+                data-editor-phone-hide
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">⌫</span>
+          <span class="editor-toolbar-label">Delete</span>
+        </button>
+        <button type="button"
+                data-editor-action="elements"
+                aria-label="Elements"
+                data-editor-phone-hide
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">◇</span>
+          <span class="editor-toolbar-label">Elements</span>
+        </button>
+      </div>
+      <p class="editor-toolbar-feedback"
+         data-editor-tool-feedback
+         role="status"
+         aria-live="polite"></p>
+    </aside>
+
+    <div id="editor-root"
+         class="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface"
+         aria-label="Design canvas">
+      {# Shared tool panel: absolute inside #editor-root so it never changes clientWidth / ResizeObserver sizing. #}
+      <div id="editor-tool-panel"
+           class="editor-tool-panel"
+           role="dialog"
+           aria-modal="false"
+           aria-labelledby="editor-tool-panel-title"
+           hidden>
+        <div class="editor-tool-panel-chrome">
+          <div class="editor-tool-panel-header">
+            <h2 id="editor-tool-panel-title" class="editor-tool-panel-title">Tools</h2>
+            <button type="button"
+                    class="editor-tool-panel-close"
+                    data-panel-close
+                    aria-label="Close panel">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <p class="editor-panel-feedback" data-panel-feedback role="status" aria-live="polite"></p>
+          <div class="editor-tool-panel-body" data-panel-body></div>
+        </div>
+      </div>
+      <div id="editor-view-toggle"
+           class="editor-view-toggle"
+           role="group"
+           aria-label="Garment view">
+        <button type="button"
+                data-editor-view="front"
+                aria-pressed="true">Front</button>
+        <button type="button"
+                data-editor-view="back"
+                aria-pressed="false">Back</button>
+      </div>
+      <div id="editor-zoom-chrome"
+           class="editor-zoom-chrome"
+           role="group"
+           aria-label="Canvas zoom">
+        <button type="button"
+                data-editor-zoom-out
+                aria-label="Zoom out"
+                title="Zoom out (Ctrl/−)">−</button>
+        <button type="button"
+                data-editor-zoom-reset
+                aria-label="Reset zoom to 100%"
+                title="Reset zoom (Ctrl/0)">100%</button>
+        <button type="button"
+                data-editor-zoom-in
+                aria-label="Zoom in"
+                title="Zoom in (Ctrl/=)">+</button>
+      </div>
+      <button type="button"
+              id="editor-props-pill"
+              class="editor-props-pill"
+              aria-controls="editor-properties-panel"
+              aria-expanded="false"
+              hidden>
+        Edit
+      </button>
+      <aside id="editor-properties-panel"
+             class="editor-properties-panel"
+             role="group"
+             aria-labelledby="editor-properties-title"
+             hidden>
+        <div class="editor-properties-chrome">
+          <div class="editor-properties-header">
+            <h2 id="editor-properties-title" class="editor-properties-title">Properties</h2>
+            <button type="button"
+                    class="editor-properties-icon-btn"
+                    data-props-expand
+                    aria-label="Expand properties"
+                    hidden>
+              <span aria-hidden="true">▸</span>
+            </button>
+            <button type="button"
+                    class="editor-properties-icon-btn"
+                    data-props-close
+                    aria-label="Collapse or close properties">
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+          <div class="editor-properties-body" data-props-body></div>
+        </div>
+      </aside>
+      <div id="editor-context-bar"
+           class="editor-context-bar"
+           role="toolbar"
+           aria-label="Selection actions"
+           hidden>
+        <button type="button" data-context-action="color" aria-label="Color">Color</button>
+        <button type="button" data-context-action="duplicate" aria-label="Duplicate">Duplicate</button>
+        <button type="button" data-context-action="forward" aria-label="Bring forward">Forward</button>
+        <button type="button" data-context-action="backward" aria-label="Send back">Back</button>
+        <button type="button" data-context-action="delete" aria-label="Delete">Delete</button>
+      </div>
+      <div id="editor-canvas-host"
+           class="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden p-4 sm:p-6">
+        <div id="editor-canvas-wrap"
+             class="overflow-hidden rounded-md border border-border shadow-sm"
+             style="touch-action:none">
+          {# Scene scales garment + Fabric together (viewport zoom). Overflow banner stays outside. #}
+          <div id="editor-artboard-scene" class="editor-artboard-scene">
+            <canvas id="blytz-fabric-canvas"
+                    width="800"
+                    height="800"
+                    style="touch-action:none"></canvas>
+          </div>
+          {# Out-of-flow overlay: must not sit in the host flex column (show/hide would reflow artboard sizing). #}
+          <div id="editor-print-overflow-warning"
+               class="editor-print-overflow-warning"
+               role="status"
+               aria-live="polite"
+               aria-hidden="true"
+               hidden
+               data-overflow="0"
+               data-reason="uninitialized"></div>
+        </div>
+        <p class="text-center text-xs text-ink-subtle">
+          Working canvas 800×800 (provisional). Use the toolbar or the AI Assistant for ideas.
+        </p>
+      </div>
+    </div>
+
+    <div id="ai-assistant-backdrop"
+         class="fixed inset-0 z-40 hidden bg-ink/50 lg:hidden"
+         aria-hidden="true"></div>
+
+    <aside id="ai-assistant"
+           class="ai-assistant-panel flex w-full max-w-md flex-col border-border bg-canvas lg:max-w-sm lg:border-l"
+           aria-label="AI Assistant"
+           aria-hidden="false">
+      <div class="flex items-center justify-between border-b border-border px-4 py-3">
+        <div>
+          <h2 class="font-display text-lg text-ink">AI Assistant</h2>
+          <p class="text-xs text-ink-subtle" data-ai-mode-label>
+            {% if ai_suggest_enabled %}
+              Two AI candidates per turn · preview, then edit to keep
+            {% else %}
+              AI unavailable — configure GEMINI_API_KEY, or use local demo fallback
+            {% endif %}
+          </p>
+        </div>
+        <button type="button"
+                data-ai-close
+                class="rounded-md p-1.5 text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink lg:hidden"
+                aria-label="Close AI Assistant">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div data-ai-messages
+           class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
+           aria-live="polite">
+        <div data-ai-empty class="space-y-3 text-sm text-ink-muted">
+          <p>
+            {% if ai_suggest_enabled %}
+              Describe a look for this side. Each turn returns two AI candidates you can preview.
+              The first real edit keeps that option and discards the other. Manual tools stay available.
+            {% else %}
+              Live AI is not configured. Starter prompts still return two local demo candidates so you can try the preview/commit flow.
+            {% endif %}
+          </p>
+          <p class="text-xs text-ink-subtle">Try a starter prompt:</p>
+          <div class="flex flex-wrap gap-2">
+            <button type="button"
+                    data-ai-starter="Bold wordmark across the chest"
+                    class="inline-flex min-h-9 items-center rounded-md border border-border bg-surface px-3 text-xs font-medium text-ink hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+              Bold wordmark across the chest
+            </button>
+            <button type="button"
+                    data-ai-starter="Minimal monogram in the corner"
+                    class="inline-flex min-h-9 items-center rounded-md border border-border bg-surface px-3 text-xs font-medium text-ink hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+              Minimal monogram in the corner
+            </button>
+            <button type="button"
+                    data-ai-starter="Sporty number badge"
+                    class="inline-flex min-h-9 items-center rounded-md border border-border bg-surface px-3 text-xs font-medium text-ink hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+              Sporty number badge
+            </button>
+          </div>
+          {% if not ai_suggest_enabled %}
+          <p class="text-xs text-ink-subtle">Demo tip: include the word “fail” to exercise the local error/retry path.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div data-ai-turn
+           class="ai-turn-panel hidden shrink-0 border-t border-border px-4 py-3"
+           aria-label="Current turn candidates"></div>
+
+      <p class="px-4 text-xs text-ink-muted" data-ai-status role="status" aria-live="polite"></p>
+
+      <form data-ai-form class="border-t border-border p-4">
+        <label for="ai-chat-input" class="sr-only">Prompt</label>
+        <textarea id="ai-chat-input"
+                  data-ai-input
+                  rows="2"
+                  placeholder="Describe a design idea…"
+                  class="block w-full rounded-md border border-border bg-canvas px-3 py-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"></textarea>
+        <div class="mt-2 flex items-center justify-between gap-2">
+          <p class="text-xs text-ink-subtle">Enter to send · Shift+Enter for a new line</p>
+          <button type="submit"
+                  data-ai-send
+                  class="inline-flex min-h-11 items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40">
+            Send
+          </button>
+        </div>
+      </form>
+    </aside>
+  </div>
+</div>
+
+{% comment %}Design-info drawer: garment metadata only (edit tools live in #editor-toolbar).{% endcomment %}
+<div id="editor-tools"
+     class="fixed inset-0 z-50 hidden"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="editor-tools-title"
+     data-drawer>
+  <div class="absolute inset-0 bg-ink/50" data-drawer-close tabindex="-1"></div>
+  <div class="absolute inset-y-0 right-0 flex w-full max-w-sm flex-col border-l border-border bg-canvas shadow-lg">
+    <div class="flex items-center justify-between border-b border-border px-4 py-3">
+      <h2 id="editor-tools-title" class="font-display text-lg text-ink">Design info</h2>
+      <button type="button"
+              class="rounded-md p-1.5 text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              data-drawer-close
+              aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    <div class="flex-1 space-y-6 overflow-y-auto px-4 py-4 text-sm">
+      <section>
+        <h3 class="font-medium text-ink">Garment</h3>
+        <p class="mt-1 text-ink-muted">
+          Template and color are design metadata (not part of the canvas JSON). Use the Garment tool in the toolbar to change them.
+        </p>
+        <p id="editor-garment-summary"
+           class="mt-3 font-medium text-ink"
+           aria-live="polite"></p>
+      </section>
+
+      <section aria-labelledby="editor-readiness-title">
+        <h3 id="editor-readiness-title" class="font-medium text-ink">Before you submit</h3>
+        <p class="mt-1 text-ink-muted">
+          Client-side review of known requirements. Server validation remains authoritative — passing these checks does not bypass payment or submit rules.
+        </p>
+        <div class="editor-readiness mt-3"
+             data-editor-readiness
+             aria-live="polite"></div>
+      </section>
+
+      <section>
+        <h3 class="font-medium text-ink">Editing</h3>
+        <p class="mt-1 text-ink-muted">
+          Use the editor toolbar for select, text, image upload, and delete.
+          Images: PNG, JPG, or WebP · up to 8&nbsp;MB input (stored smaller).
+        </p>
+      </section>
+
+      <section>
+        <h3 class="font-medium text-ink">AI</h3>
+        <p class="mt-1 text-ink-muted">
+          Use the AI Assistant panel for two-candidate suggestions
+          {% if ai_suggest_enabled %}(Gemini){% else %}(local demo until GEMINI_API_KEY is set){% endif %}.
+          Preview freely; the first real edit keeps the active candidate.
+        </p>
+        <button type="button"
+                data-ai-open
+                data-drawer-close
+                class="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink lg:hidden">
+          Open AI Assistant
+        </button>
+      </section>
+    </div>
+  </div>
+</div>
+
+{% comment %}Stage H: customer design preview / final review (presentation-only; does not mutate the live canvas).{% endcomment %}
+<div id="design-preview-modal"
+     class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="design-preview-title"
+     data-modal
+     data-design-preview-modal>
+  <div class="absolute inset-0 bg-ink/50" data-modal-close data-design-preview-close tabindex="-1"></div>
+  <div class="design-preview-panel relative z-10 flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-canvas shadow-lg">
+    <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-3 sm:px-6">
+      <h2 id="design-preview-title" class="font-display text-lg text-ink">Design preview</h2>
+      <button type="button"
+              class="rounded-md p-1.5 text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              data-modal-close
+              data-design-preview-close
+              aria-label="Close preview and return to editor">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+
+    <div class="design-preview-body flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:flex-row sm:px-6">
+      <div class="design-preview-visual min-w-0 flex-1">
+        <div class="design-preview-side-tabs"
+             role="tablist"
+             aria-label="Preview garment side">
+          <button type="button"
+                  role="tab"
+                  id="design-preview-tab-front"
+                  data-design-preview-side="front"
+                  aria-controls="design-preview-figure"
+                  aria-selected="true"
+                  class="design-preview-side-tab is-active">
+            Front
+          </button>
+          <button type="button"
+                  role="tab"
+                  id="design-preview-tab-back"
+                  data-design-preview-side="back"
+                  aria-controls="design-preview-figure"
+                  aria-selected="false"
+                  class="design-preview-side-tab">
+            Back
+          </button>
+        </div>
+        <figure id="design-preview-figure"
+                class="design-preview-figure"
+                role="tabpanel"
+                aria-labelledby="design-preview-tab-front">
+          <div class="design-preview-frame"
+               data-design-preview-frame>
+            <img data-design-preview-img
+                 alt=""
+                 width="800"
+                 height="800"
+                 decoding="async"
+                 hidden>
+            <p class="design-preview-loading"
+               data-design-preview-loading
+               role="status"
+               aria-live="polite">Preparing mock-up…</p>
+            <div class="design-preview-error-panel"
+                 data-design-preview-error-panel
+                 hidden>
+              <p class="design-preview-error"
+                 data-design-preview-error
+                 role="alert"></p>
+              <button type="button"
+                      class="design-preview-refresh-retry"
+                      data-design-preview-refresh-retry
+                      hidden>
+                Retry mock-up
+              </button>
+            </div>
+          </div>
+          <figcaption class="design-preview-caption text-xs text-ink-subtle"
+                      data-design-preview-caption>
+            Garment + artwork mock-up (same export path as submit).
+          </figcaption>
+        </figure>
+      </div>
+
+      <aside class="design-preview-review w-full shrink-0 sm:max-w-[16rem]"
+             aria-labelledby="design-preview-review-heading">
+        <h3 id="design-preview-review-heading" class="font-medium text-ink">Review</h3>
+        <dl class="design-preview-meta mt-3">
+          <div>
+            <dt>Title</dt>
+            <dd data-design-preview-title>—</dd>
+          </div>
+          <div>
+            <dt>Garment</dt>
+            <dd data-design-preview-garment>—</dd>
+          </div>
+          <div>
+            <dt>Side</dt>
+            <dd data-design-preview-side-label>Front</dd>
+          </div>
+          <div>
+            <dt>Save status</dt>
+            <dd data-design-preview-save-status>—</dd>
+          </div>
+        </dl>
+        <p class="design-preview-honesty mt-3 text-sm"
+           data-design-preview-honesty
+           role="status"
+           aria-live="polite"></p>
+        <div class="design-preview-readiness mt-4"
+             data-design-preview-readiness
+             aria-live="polite"></div>
+        <p class="mt-4 text-xs text-ink-subtle">
+          Close this preview and use <strong>Submit</strong> in the editor when you are ready to open payment. This screen does not place an order.
+        </p>
+      </aside>
+    </div>
+
+    <div class="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3 sm:px-6">
+      <button type="button"
+              data-design-preview-close
+              class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+        Back to edit
+      </button>
+      <button type="button"
+              data-design-preview-save
+              class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40">
+        Save
+      </button>
+    </div>
+  </div>
+</div>
+
+{% comment %}Payment modal{% endcomment %}
+<div id="payment-modal"
+     class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="payment-modal-title"
+     data-modal>
+  <div class="absolute inset-0 bg-ink/50" data-modal-close tabindex="-1"></div>
+  <div class="relative z-10 flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-lg border border-border bg-canvas shadow-lg">
+    <div class="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6">
+      <h2 id="payment-modal-title" class="font-display text-lg text-ink">Confirm payment</h2>
+      <button type="button"
+              class="rounded-md p-1.5 text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              data-modal-close
+              aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+
+    <form id="payment-submit-form"
+          method="post"
+          action="{% url 'design_submit' design.pk %}"
+          enctype="multipart/form-data"
+          class="flex flex-1 flex-col overflow-hidden">
+      {% csrf_token %}
+      <input type="hidden" name="canvas_json" id="submit-canvas-json" value="">
+      <input type="hidden" name="garment_template" id="submit-garment-template" value="">
+      <input type="hidden" name="garment_color" id="submit-garment-color" value="">
+      <input type="hidden" name="window_started_at" id="window-started-at" value="">
+
+      <div class="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+        <div class="flex items-center justify-between rounded-md border border-gold bg-gold-soft/50 px-3 py-2 text-sm text-ink">
+          <span>Payment window</span>
+          <span class="font-mono text-base" data-payment-timer>00:00</span>
+        </div>
+
+        <p class="rounded-md border border-danger/40 bg-danger/5 px-3 py-2 text-sm font-medium text-danger">
+          Strictly no refunds. All sales are final once you send payment proof.
+        </p>
+
+        {% if channels %}
+        <div>
+          <label for="payment-channel" class="mb-1.5 block text-sm font-medium text-ink">Payment channel</label>
+          <select id="payment-channel"
+                  name="channel"
+                  required
+                  class="block w-full min-h-11 rounded-md border border-border bg-canvas px-3 py-2.5 text-base text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+            {% for ch in channels %}
+            <option value="{{ ch.pk }}"
+                    data-account-name="{{ ch.account_name }}"
+                    data-account-number="{{ ch.account_number }}"
+                    data-instructions="{{ ch.instructions|escape }}"
+                    {% if ch.qr_image %}data-qr-url="{{ ch.qr_image.url }}"{% endif %}>
+              {{ ch.display_name }} ({{ ch.get_kind_display }})
+            </option>
+            {% endfor %}
+          </select>
+          <div data-channel-details class="mt-2"></div>
+        </div>
+        {% else %}
+        <p class="text-sm text-danger">No active payment channels. Contact staff on Messenger.</p>
+        {% endif %}
+
+        <div>
+          <label for="payment-amount" class="mb-1.5 block text-sm font-medium text-ink">Amount claimed</label>
+          <input type="number"
+                 id="payment-amount"
+                 name="amount_claimed"
+                 min="0.01"
+                 step="0.01"
+                 inputmode="decimal"
+                 class="block w-full min-h-11 rounded-md border border-border bg-canvas px-3 py-2.5 font-mono text-base text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                 placeholder="0.00">
+        </div>
+
+        <div>
+          <label for="payment-proof" class="mb-1.5 block text-sm font-medium text-ink">Proof of payment</label>
+          <input type="file"
+                 id="payment-proof"
+                 name="proof_file"
+                 accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,image/*,application/pdf"
+                 capture="environment"
+                 class="block w-full min-h-11 rounded-md border border-border bg-canvas px-3 py-2 text-base text-ink file:mr-3 file:rounded file:border-0 file:bg-ink file:px-3 file:py-2 file:text-sm file:font-medium file:text-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink">
+          <p class="mt-1.5 text-xs text-ink-subtle">PNG, JPG, JPEG, or PDF · camera photos and screenshots OK · max {{ PROOF_MAX_UPLOAD_MB }} MB</p>
+          <p class="mt-1 text-sm text-danger" data-payment-client-error role="alert"></p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3 sm:px-6">
+        <button type="button"
+                id="payment-cancel-btn"
+                class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+          Cancel Payment
+        </button>
+        <button type="submit"
+                id="payment-sent-btn"
+                disabled
+                {% if not channels %}disabled{% endif %}
+                class="inline-flex min-h-11 items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40">
+          Payment Sent
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

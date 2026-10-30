@@ -1,0 +1,45 @@
+{% extends "base_staff.html" %}
+
+{% block title %}{{ title }} — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-lg px-4 py-10 sm:px-6">
+  <nav class="text-sm text-ink-muted" aria-label="Breadcrumb">
+    <a href="{% url 'payment_channel_list' %}" class="underline">Payment channels</a>
+    <span class="mx-1">/</span>
+    <span class="text-ink">{% if is_edit %}Edit{% else %}Add{% endif %}</span>
+  </nav>
+  <h1 class="mt-4 font-display text-3xl text-ink">{{ title }}</h1>
+
+  <form method="post" enctype="multipart/form-data" class="mt-8 flex flex-col gap-4" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="rounded-md border border-danger bg-danger/5 px-4 py-3 text-sm text-danger" role="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+    {% for field in form %}
+    <div>
+      <label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-medium text-ink">{{ field.label }}</label>
+      {{ field.as_widget }}
+      {% if field.errors %}<p class="mt-1 text-sm text-danger">{{ field.errors|striptags }}</p>{% endif %}
+      {% if field.help_text %}<p class="mt-1 text-xs text-ink-subtle">{{ field.help_text }}</p>{% endif %}
+    </div>
+    {% endfor %}
+    {% include "components/button.html" with label="Save" type="submit" variant="primary" %}
+  </form>
+</section>
+{% endblock %}
+{% block extra_head %}
+<style>
+  form input, form select, form textarea {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+    border: 1px solid #E5E5E5;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    background: #fff;
+  }
+  form input[type="checkbox"] { width: auto; min-height: 1.25rem; }
+  form input[type="file"] { padding: 0.5rem; }
+</style>
+{% endblock %}

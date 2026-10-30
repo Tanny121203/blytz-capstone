@@ -1,0 +1,55 @@
+{% extends "base_customer.html" %}
+
+{% block title %}My designs — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="font-display text-3xl text-ink">Designs</h1>
+      <p class="mt-1 text-ink-muted">Drafts stay private until you submit.</p>
+    </div>
+    <form method="post" action="{% url 'design_create' %}">
+      {% csrf_token %}
+      {% include "components/button.html" with label="Start new design" type="submit" variant="primary" %}
+    </form>
+  </div>
+
+  {% if designs %}
+  <div class="mt-8 rounded-lg border border-border md:overflow-x-auto">
+    <table class="table-responsive-cards w-full border-collapse text-left text-sm md:min-w-[28rem]">
+      <thead>
+        <tr class="border-b border-border-strong bg-surface">
+          <th class="px-4 py-3 font-medium text-ink">Title</th>
+          <th class="px-4 py-3 font-medium text-ink">Garment</th>
+          <th class="px-4 py-3 font-medium text-ink">Status</th>
+          <th class="px-4 py-3 font-medium text-ink">Updated</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border">
+        {% for design in designs %}
+        <tr class="hover:bg-surface">
+          <td class="px-4 py-3" data-label="Title">
+            <a href="{% url 'design_editor' design.pk %}" class="font-medium text-ink underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">{{ design.title }}</a>
+          </td>
+          <td class="px-4 py-3 text-ink-muted" data-label="Garment">{{ design.garment_template|default:"—" }} · {{ design.garment_color|default:"—" }}</td>
+          <td class="px-4 py-3" data-label="Status">
+            {% if design.is_submitted %}
+              {% include "components/badge.html" with label="Submitted" variant="success" %}
+            {% else %}
+              {% include "components/badge.html" with label="Draft" variant="muted" %}
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 font-mono text-xs text-ink-muted" data-label="Updated">{{ design.updated_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="mt-8">
+    {% include "components/empty_state.html" with title="No designs yet" description="Create a draft to begin mocking up." %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

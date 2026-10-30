@@ -1,0 +1,33 @@
+{% comment %}
+  Input
+  Vars: label, name, id, type (text|email|password|number|search|tel|url), value, placeholder,
+        help, error, required, disabled, autocomplete, class, input_class, accent
+{% endcomment %}
+{% with field_id=id|default:name type=type|default:"text" %}
+<div class="w-full {{ class }}">
+  {% if label %}
+  <label for="{{ field_id }}" class="mb-1.5 block text-sm font-medium text-ink">{{ label }}{% if required %}<span class="text-danger" aria-hidden="true"> *</span>{% endif %}</label>
+  {% endif %}
+  <input
+    type="{{ type }}"
+    name="{{ name }}"
+    id="{{ field_id }}"
+    value="{{ value|default:'' }}"
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+    {% if required %}required{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if error %}aria-invalid="true" aria-describedby="{{ field_id }}-error"{% elif help %}aria-describedby="{{ field_id }}-help"{% endif %}
+    class="block w-full min-h-11 rounded-md border bg-canvas px-3 py-2.5 text-base text-ink placeholder:text-ink-subtle
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink
+           disabled:cursor-not-allowed disabled:opacity-50
+           {% if error %}border-danger{% elif accent %}border-gold{% else %}border-border{% endif %}
+           {{ input_class }}"
+  >
+  {% if error %}
+  <p id="{{ field_id }}-error" class="mt-1.5 text-sm text-danger">{{ error }}</p>
+  {% elif help %}
+  <p id="{{ field_id }}-help" class="mt-1.5 text-sm text-ink-subtle">{{ help }}</p>
+  {% endif %}
+</div>
+{% endwith %}

@@ -1,0 +1,29 @@
+{% comment %}
+  Pipeline card for jobs board
+  Vars: order (required)
+{% endcomment %}
+<a href="{% url 'staff_order_detail' order.order_id %}"
+   class="block rounded-lg border border-border bg-canvas p-3 hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+  <div class="flex items-start justify-between gap-2">
+    <p class="font-mono text-sm font-medium text-ink">{{ order.order_id }}</p>
+    {% if order.payment_status == "Fully Paid" %}
+      {% include "components/badge.html" with label="Fully Paid" variant="success" %}
+    {% else %}
+      {% include "components/badge.html" with label="Outstanding" variant="warning" %}
+    {% endif %}
+  </div>
+  {% if order.pending_payment %}
+  <div class="mt-2">
+    {% include "components/badge.html" with label="Payment awaiting review" variant="warning" %}
+  </div>
+  {% endif %}
+  <p class="mt-2 truncate text-sm text-ink">{{ order.customer.get_full_name }}</p>
+  <p class="mt-1 truncate text-xs text-ink-muted">
+    {{ order.design.title }}
+    {% if order.design.garment_template %} · {{ order.design.garment_template }}{% endif %}
+  </p>
+  {% if order.agreed_total %}
+  <p class="mt-1 font-mono text-xs text-ink">₱{{ order.total_paid }} of ₱{{ order.agreed_total }}</p>
+  {% endif %}
+  <p class="mt-1 text-xs text-ink-muted">{{ order.created_at|date:"M j, g:i A" }}</p>
+</a>

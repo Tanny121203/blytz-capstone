@@ -1,0 +1,32 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Create staff — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-lg px-4 py-10 sm:px-6">
+  <nav class="text-sm text-ink-muted" aria-label="Breadcrumb">
+    <a href="{% url 'user_manage_list' %}" class="underline">Users</a>
+    <span class="mx-1">/</span>
+    <span class="text-ink">Create staff</span>
+  </nav>
+  <h1 class="mt-4 font-display text-3xl text-ink">Create staff account</h1>
+  <form method="post" class="mt-8 flex flex-col gap-4" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+    <div>
+      <label class="mb-1.5 block text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {% if field.field.widget.input_type == 'checkbox' %}
+      <label class="inline-flex min-h-11 items-center gap-2 text-sm">{{ field }} Can edit accounting</label>
+      {% else %}
+      <input type="{% if 'password' in field.name %}password{% elif field.name == 'email' %}email{% else %}text{% endif %}"
+             name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+             value="{{ field.value|default_if_none:'' }}"
+             class="block w-full rounded-md border border-border px-3 py-2.5 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+      {% endif %}
+      {% if field.errors %}<p class="mt-1 text-sm text-danger">{{ field.errors|striptags }}</p>{% endif %}
+    </div>
+    {% endfor %}
+    {% include "components/button.html" with label="Create staff" type="submit" variant="primary" %}
+  </form>
+</section>
+{% endblock %}

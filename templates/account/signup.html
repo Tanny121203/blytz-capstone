@@ -1,0 +1,49 @@
+{% extends "account/base_account.html" %}
+
+{% block account_title %}Sign up{% endblock %}
+{% block heading %}Create your account{% endblock %}
+{% block subheading %}
+<p class="mt-2 text-sm text-ink-muted">We'll email you a verification link (printed to the console in development).</p>
+{% endblock %}
+
+{% block account_content %}
+<form method="post" action="{% url 'account_signup' %}" class="flex flex-col gap-4" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+  <div class="rounded-md border border-danger bg-danger/5 px-4 py-3 text-sm text-danger">
+    {{ form.non_field_errors }}
+  </div>
+  {% endif %}
+
+    {% for field in form.visible_fields %}
+  <div class="w-full">
+    <label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-medium text-ink">
+      {{ field.label }}{% if field.field.required %}<span class="text-danger" aria-hidden="true"> *</span>{% endif %}
+    </label>
+    <input
+      type="{% if 'password' in field.name %}password{% else %}{{ field.field.widget.input_type|default:'text' }}{% endif %}"
+      name="{{ field.html_name }}"
+      id="{{ field.id_for_label }}"
+      {% if 'password' not in field.name %}value="{{ field.value|default_if_none:'' }}"{% endif %}
+      {% if field.field.widget.attrs.placeholder %}placeholder="{{ field.field.widget.attrs.placeholder }}"{% endif %}
+      {% if field.field.widget.attrs.autocomplete %}autocomplete="{{ field.field.widget.attrs.autocomplete }}"{% endif %}
+      {% if field.field.required %}required{% endif %}
+      class="block w-full rounded-md border bg-canvas px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink {% if field.errors %}border-danger{% else %}border-border{% endif %}"
+    >
+    {% if field.errors %}
+    <p class="mt-1.5 text-sm text-danger">{{ field.errors|striptags }}</p>
+    {% elif field.help_text %}
+    <p class="mt-1.5 text-sm text-ink-subtle">{{ field.help_text|safe }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+
+  {% include "components/button.html" with label="Sign up" type="submit" variant="primary" class="w-full" %}
+</form>
+<p class="mt-6 text-center text-sm text-ink-muted">
+  Already have an account?
+  <a href="{% url 'account_login' %}" class="font-medium text-ink underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Log in</a>
+</p>
+{% endblock %}

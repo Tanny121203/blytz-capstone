@@ -1,0 +1,54 @@
+{% extends "account/base_account.html" %}
+
+{% block account_title %}Log in{% endblock %}
+{% block heading %}Welcome back{% endblock %}
+{% block subheading %}
+<p class="mt-2 text-sm text-ink-muted">Sign in with the email you registered.</p>
+{% endblock %}
+
+{% block account_content %}
+<form method="post" action="{% url 'account_login' %}" class="flex flex-col gap-4" novalidate>
+  {% csrf_token %}
+  {% if redirect_field_value %}
+  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+  {% endif %}
+
+  {% if form.non_field_errors %}
+  <div class="rounded-md border border-danger bg-danger/5 px-4 py-3 text-sm text-danger">
+    {{ form.non_field_errors }}
+  </div>
+  {% endif %}
+
+  {% for field in form.visible_fields %}
+  <div class="w-full">
+    <label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-medium text-ink">
+      {{ field.label }}{% if field.field.required %}<span class="text-danger" aria-hidden="true"> *</span>{% endif %}
+    </label>
+    {% if field.name == "remember" %}
+    <label class="flex items-center gap-2 text-sm text-ink">
+      {{ field }}
+      <span>Remember me</span>
+    </label>
+    {% else %}
+    <input
+      type="{% if 'password' in field.name %}password{% else %}{{ field.field.widget.input_type|default:'text' }}{% endif %}"
+      name="{{ field.html_name }}"
+      id="{{ field.id_for_label }}"
+      value="{% if 'password' not in field.name %}{{ field.value|default_if_none:'' }}{% endif %}"
+      {% if field.field.required %}required{% endif %}
+      class="block w-full rounded-md border bg-canvas px-3 py-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink {% if field.errors %}border-danger{% else %}border-border{% endif %}"
+    >
+    {% endif %}
+    {% if field.errors %}
+    <p class="mt-1.5 text-sm text-danger">{{ field.errors|striptags }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% include "components/button.html" with label="Log in" type="submit" variant="primary" class="w-full" %}
+</form>
+<p class="mt-6 text-center text-sm text-ink-muted">
+  New here?
+  <a href="{% url 'account_signup' %}" class="font-medium text-ink underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Create an account</a>
+</p>
+{% endblock %}

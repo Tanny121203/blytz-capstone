@@ -1,0 +1,139 @@
+{% extends "base_public.html" %}
+
+{% block title %}Component gallery — Blytz{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+  <header class="mb-10 max-w-2xl">
+    <p class="text-xs font-medium uppercase tracking-widest text-ink-subtle">DEBUG only</p>
+    <h1 class="mt-2 font-display text-4xl text-ink">Component gallery</h1>
+    <p class="mt-3 text-ink-muted">Playfair Display headings, system body, black/white UI. Gold is optional accent only.</p>
+  </header>
+
+  <div class="flex flex-col gap-16">
+
+    {# —— Button —— #}
+    <section id="button" class="scroll-mt-8">
+      <h2 class="mb-4 font-display text-2xl">Button</h2>
+      <div class="flex flex-wrap items-center gap-3">
+        {% include "components/button.html" with label="Primary" variant="primary" %}
+        {% include "components/button.html" with label="Secondary" variant="secondary" %}
+        {% include "components/button.html" with label="Ghost" variant="ghost" %}
+        {% include "components/button.html" with label="Danger" variant="danger" %}
+        {% include "components/button.html" with label="Gold border" variant="secondary" accent=True %}
+        {% include "components/button.html" with label="Small" size="sm" %}
+        {% include "components/button.html" with label="Large" size="lg" %}
+        {% include "components/button.html" with label="Link button" href="#" variant="primary" %}
+      </div>
+    </section>
+
+    {# —— Input / Select / File —— #}
+    <section id="forms" class="scroll-mt-8">
+      <h2 class="mb-4 font-display text-2xl">Input, Select, FileInput</h2>
+      <div class="grid gap-6 sm:grid-cols-2">
+        {% include "components/input.html" with label="Email" name="email" type="email" placeholder="you@example.com" help="We never share your email." %}
+        {% include "components/input.html" with label="With error" name="bad" error="This field is required." required=True %}
+        {% include "components/input.html" with label="Gold accent" name="accent" accent=True placeholder="Optional gold border" %}
+        {% include "components/select.html" with label="Size" name="size" options=select_options placeholder="Choose size" %}
+        {% include "components/file_input.html" with label="Artwork" name="artwork" accept="image/*" help="PNG or JPG" %}
+      </div>
+    </section>
+
+    {# —— Card / Badge —— #}
+    <section id="card" class="scroll-mt-8">
+      <h2 class="mb-4 font-display text-2xl">Card &amp; Badge</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+        {% include "components/card_open.html" with title="Standard card" subtitle="Default border" %}
+          <p class="text-sm text-ink-muted">Card body via open/close partials.</p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            {% include "components/badge.html" with label="Default" %}
+            {% include "components/badge.html" with label="Muted" variant="muted" %}
+            {% include "components/badge.html" with label="Success" variant="success" %}
+            {% include "components/badge.html" with label="Warning" variant="warning" %}
+            {% include "components/badge.html" with label="Danger" variant="danger" %}
+            {% include "components/badge.html" with label="Gold" variant="gold" %}
+          </div>
+        {% include "components/card_close.html" %}
+        {% include "components/card.html" with title="Accent card" subtitle="Optional gold border" accent=True body="Use sparingly for featured content." %}
+      </div>
+    </section>
+
+    {# —— Table —— #}
+    <section id="table" class="scroll-mt-8">
+      <h2 class="mb-4 font-display text-2xl">Table</h2>
+      <div class="w-full overflow-x-auto rounded-lg border border-border">
+        <table class="w-full min-w-[32rem] border-collapse text-left text-sm">
+          <thead>
+            <tr class="border-b border-border-strong bg-surface">
+              {% for h in table_headers %}
+              <th scope="col" class="px-3 py-2 font-medium text-ink">{{ h }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            {% for row in table_rows %}
+            <tr class="hover:bg-surface">
+              {% for cell in row %}
+              <td class="px-3 py-2 text-ink">{{ cell }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-2 text-xs text-ink-subtle">Markup matches <code class="rounded bg-surface px-1">components/table.html</code> shell.</p>
+    </section>
+
+    {# —— Modal / Drawer —— #}
+    <section id="overlays" class="scroll-mt-8">
+      <h2 class="mb-4 font-display text-2xl">Modal &amp; Drawer</h2>
+      <div class="flex flex-wrap gap-3">
+        <button type="button" data-modal-open="demo-modal"
+                class="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+          Open modal
+        </button>
+        <button type="button" data-drawer-open="demo-drawer"
+                class="inline-flex items-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+          Open drawer
+        </button>
+      </div>
+      {% include "components/modal.html" with id="demo-modal" title="Confirm order" body="Payment window starts when you continue. You can message us on Messenger if you need help." %}
+      {% include "components/drawer.html" with id="demo-drawer" title="Filters" body="Drawer content for mobile-friendly panels." %}
+    </section>
+
+    {# —— Tabs —— #}
+    <section id="tabs" class="scroll-mt-8">
+      <h2 class="mb-4 font-display text-2xl">Tabs</h2>
+      {% include "components/tabs.html" with id="gallery-tabs" tabs=demo_tabs label="Design system" %}
+    </section>
+
+    {# —— Empty / Messages / Stats / Stepper —— #}
+    <section id="feedback" class="scroll-mt-8">
+      <h2 class="mb-4 font-display text-2xl">EmptyState, Messages, StatTile, Stepper</h2>
+      {% include "components/empty_state.html" with title="No designs yet" description="Upload artwork or browse the catalog to get started." action_label="Browse designs" action_href="#" %}
+      <div class="mt-6">
+        {% include "components/messages.html" with extra=demo_messages %}
+      </div>
+      <div class="mt-6 grid gap-4 sm:grid-cols-3">
+        {% include "components/stat_tile.html" with label="Orders today" value="24" hint="+3 vs yesterday" %}
+        {% include "components/stat_tile.html" with label="Revenue" value="₱18.4k" %}
+        {% include "components/stat_tile.html" with label="Pending pay" value="5" accent=True hint="Gold accent optional" %}
+      </div>
+      <div class="mt-8 rounded-lg border border-border p-4 sm:p-6">
+        {% include "components/stepper.html" with steps=demo_steps current=2 %}
+      </div>
+    </section>
+
+    {# —— Base variants —— #}
+    <section id="bases" class="scroll-mt-8">
+      <h2 class="mb-4 font-display text-2xl">Base templates</h2>
+      <p class="mb-4 text-sm text-ink-muted">This page uses <code class="rounded bg-surface px-1">base_public.html</code>. Preview the other shells:</p>
+      <div class="flex flex-wrap gap-3">
+        <a href="{% url 'dev_components_customer' %}" class="rounded-md border border-border px-3 py-2 text-sm hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Customer shell</a>
+        <a href="{% url 'dev_components_staff' %}" class="rounded-md border border-border px-3 py-2 text-sm hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Staff shell</a>
+      </div>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

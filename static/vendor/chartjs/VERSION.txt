@@ -1,0 +1,5 @@
+Chart.js 4.4.6
+Source: https://www.npmjs.com/package/chart.js/v/4.4.6
+Browser UMD build: dist/chart.umd.min.js
+License: MIT (see LICENSE.md)
+Pinned for Blytz staff overview / accounting charts — do not upgrade without re-testing.

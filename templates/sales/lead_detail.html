@@ -1,0 +1,59 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Lead · {{ lead.customer.get_full_name }} — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+  <p class="text-sm text-ink-muted">
+    <a href="{% url 'sales_pipeline' %}" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Sales</a>
+    <span class="mx-1">/</span>
+    {{ lead.customer.get_full_name }}
+  </p>
+
+  <div class="mt-4 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-display text-3xl text-ink">{{ lead.customer.get_full_name }}</h1>
+      <p class="mt-1 text-ink-muted">{{ lead.customer.email }} · {{ lead.customer.phone|default:"No phone" }}</p>
+      <p class="mt-2">{% include "components/badge.html" with label=lead.get_stage_display variant="muted" %}</p>
+    </div>
+    <form method="post" action="{% url 'update_lead_stage' lead.pk %}" class="flex items-center gap-2">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'lead_detail' lead.pk %}">
+      <select name="stage" class="rounded-md border border-border px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+        {% for value, label in stage_choices %}
+        <option value="{{ value }}" {% if lead.stage == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% include "components/button.html" with label="Update stage" type="submit" variant="secondary" size="sm" %}
+    </form>
+  </div>
+
+  <div class="mt-8 grid gap-6 lg:grid-cols-2">
+    <div class="rounded-lg border border-border bg-canvas p-4 sm:p-6">
+      <h2 class="font-display text-xl text-ink">Linked order</h2>
+      <p class="mt-3 font-mono text-lg">
+        <a href="{% url 'staff_order_detail' lead.order.order_id %}" class="underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">{{ lead.order.order_id }}</a>
+      </p>
+      <p class="mt-2 text-sm text-ink-muted">{{ lead.order.design.title }} · {{ lead.order.get_status_display }}</p>
+    </div>
+
+    <div class="rounded-lg border border-border bg-canvas p-4 sm:p-6">
+      <h2 class="font-display text-xl text-ink">Activity timeline</h2>
+      <ol class="mt-4 space-y-3">
+        {% for log in timeline %}
+        <li class="rounded-md border border-border px-3 py-2 text-sm">
+          <p class="font-medium text-ink">{{ log.get_kind_display }}</p>
+          <p class="text-xs text-ink-muted">
+            {{ log.created_at|date:"Y-m-d H:i" }}
+            {% if log.order %} · {{ log.order.order_id }}{% endif %}
+            {% if log.design %} · {{ log.design.title }}{% endif %}
+          </p>
+        </li>
+        {% empty %}
+        <li class="text-sm text-ink-muted">No activity yet.</li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,4 @@
+@imgly/background-removal 1.7.0
+Loaded at runtime via esm.sh (see static/js/remove_bg_client.js DEFAULT_IMGLY_ESM).
+Peer: onnxruntime-web@1.21.0
+Model/WASM assets: fetched by the library on first use (IMG.LY CDN / package publicPath).

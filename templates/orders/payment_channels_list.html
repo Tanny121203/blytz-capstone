@@ -1,0 +1,78 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Payment channels — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+  <nav class="text-sm text-ink-muted" aria-label="Breadcrumb">
+    <a href="{% url 'staff_home' %}" class="underline">Staff</a>
+    <span class="mx-1">/</span>
+    <span class="text-ink">Payment channels</span>
+  </nav>
+  <div class="mt-4 flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="font-display text-3xl text-ink">Payment channels</h1>
+      <p class="mt-1 text-ink-muted">GCash, Maya, and bank details customers see at checkout.</p>
+    </div>
+    {% include "components/button.html" with label="Add channel" href="/staff/payment-channels/add/" variant="primary" %}
+  </div>
+
+  {% if empty %}
+    {% include "components/empty_state.html" with title="No channels yet" description="Add at least one active channel before customers can submit payment." action_label="Add channel" action_href="/staff/payment-channels/add/" class="mt-8" %}
+  {% else %}
+  <div class="mt-8 space-y-3 md:hidden">
+    {% for ch in channels %}
+    <article class="rounded-lg border border-border bg-canvas p-4">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <p class="font-medium text-ink">{{ ch.display_name }}</p>
+          <p class="text-sm text-ink-muted">{{ ch.get_kind_display }} · {{ ch.account_number }}</p>
+        </div>
+        {% if ch.is_active %}{% include "components/badge.html" with label="Active" variant="success" %}{% else %}{% include "components/badge.html" with label="Inactive" variant="muted" %}{% endif %}
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <a href="{% url 'payment_channel_edit' ch.pk %}" class="inline-flex min-h-11 items-center rounded-md border border-border px-3 text-sm">Edit</a>
+        {% if ch.is_active %}
+        <form method="post" action="{% url 'payment_channel_deactivate' ch.pk %}">{% csrf_token %}
+          <button type="submit" class="inline-flex min-h-11 items-center rounded-md border border-border px-3 text-sm">Deactivate</button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+
+  <div class="mt-8 hidden overflow-x-auto rounded-lg border border-border md:block">
+    <table class="w-full min-w-[40rem] text-left text-sm">
+      <thead class="border-b border-border-strong bg-surface">
+        <tr>
+          <th class="px-4 py-3">Name</th>
+          <th class="px-4 py-3">Kind</th>
+          <th class="px-4 py-3">Account</th>
+          <th class="px-4 py-3">Status</th>
+          <th class="px-4 py-3">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border">
+        {% for ch in channels %}
+        <tr>
+          <td class="px-4 py-3 font-medium">{{ ch.display_name }}</td>
+          <td class="px-4 py-3">{{ ch.get_kind_display }}</td>
+          <td class="px-4 py-3 font-mono text-xs">{{ ch.account_name }} · {{ ch.account_number }}</td>
+          <td class="px-4 py-3">{% if ch.is_active %}Active{% else %}Inactive{% endif %}</td>
+          <td class="px-4 py-3">
+            <a href="{% url 'payment_channel_edit' ch.pk %}" class="underline">Edit</a>
+            {% if ch.is_active %}
+            <form method="post" action="{% url 'payment_channel_deactivate' ch.pk %}" class="ml-3 inline">{% csrf_token %}
+              <button type="submit" class="underline">Deactivate</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

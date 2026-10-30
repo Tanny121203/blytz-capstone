@@ -1,0 +1,30 @@
+{% load static tailwind_cli %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{% block title %}Blytz{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {% tailwind_css %}
+  <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="flex min-h-[100dvh] flex-col bg-bg-page text-text-primary antialiased" style="padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);">
+  <a href="#main" class="blytz-skip-link">Skip to main content</a>
+  {% block navbar %}{% endblock %}
+  {% include "components/messages.html" %}
+  <main id="main" class="flex-1 overflow-x-hidden" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+  {% block footer %}
+    {% include "components/footer.html" %}
+  {% endblock %}
+  <script src="{% static 'js/ui.js' %}" defer></script>
+  <script src="{% static 'js/nav.js' %}" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

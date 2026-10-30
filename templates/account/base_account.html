@@ -1,0 +1,13 @@
+{% extends base_template|default:"base_public.html" %}
+
+{% block title %}{% block account_title %}Account{% endblock %} — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-md px-4 py-12 sm:px-6">
+  <header class="mb-8">
+    <h1 class="font-display text-3xl text-ink">{% block heading %}Account{% endblock %}</h1>
+    {% block subheading %}{% endblock %}
+  </header>
+  {% block account_content %}{% endblock %}
+</section>
+{% endblock %}

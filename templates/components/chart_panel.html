@@ -1,0 +1,47 @@
+{% comment %}
+  Chart panel with empty state + accessible table fallback.
+  Vars: title, script_id, chart_type (bar|line|doughnut), rows, empty, class
+{% endcomment %}
+<div class="rounded-lg border border-border bg-canvas p-4 sm:p-6 {{ class }}">
+  <h2 class="font-display text-xl text-ink">{{ title }}</h2>
+  <div class="mt-4"
+       data-chart-root
+       data-chart-script="{{ script_id }}"
+       data-chart-type="{{ chart_type|default:'bar' }}">
+    <p data-chart-empty
+       class="rounded-md border border-dashed border-border bg-surface px-3 py-10 text-center text-sm text-ink-subtle {% if not empty %}hidden{% endif %}">
+      No data yet
+    </p>
+    <div data-chart-canvas-wrap
+         class="relative h-56 w-full min-w-0 sm:h-64 {% if empty %}hidden{% endif %}">
+      <canvas aria-hidden="true"></canvas>
+    </div>
+    <details class="mt-4 border-t border-border pt-3">
+      <summary class="cursor-pointer text-sm font-medium text-ink underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+        View data table
+      </summary>
+      <div class="mt-3 overflow-x-auto">
+        <table class="w-full min-w-[12rem] border-collapse text-left text-sm">
+          <thead>
+            <tr class="border-b border-border bg-surface">
+              <th class="px-3 py-2 font-medium">Label</th>
+              <th class="px-3 py-2 font-medium">Value</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            {% for row in rows %}
+            <tr>
+              <td class="px-3 py-2 text-ink">{{ row.label }}</td>
+              <td class="px-3 py-2 font-mono text-ink">{{ row.value }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td class="px-3 py-2 text-ink-muted" colspan="2">No data yet</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+</div>

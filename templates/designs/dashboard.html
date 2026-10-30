@@ -1,0 +1,72 @@
+{% extends "base_customer.html" %}
+
+{% block title %}Dashboard — Blytz{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="font-display text-3xl text-ink">Hello, {{ user.get_short_name }}</h1>
+      <p class="mt-1 text-ink-muted">Your designs and orders in one place.</p>
+    </div>
+    <form method="post" action="{% url 'design_create' %}">
+      {% csrf_token %}
+      {% include "components/button.html" with label="Start new design" type="submit" variant="primary" %}
+    </form>
+  </div>
+
+  <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {% include "components/stat_tile.html" with label="Designs" value=stat_designs %}
+    {% include "components/stat_tile.html" with label="Drafts" value=stat_drafts %}
+    {% include "components/stat_tile.html" with label="Submitted" value=stat_submitted %}
+    {% include "components/stat_tile.html" with label="Orders" value=stat_orders accent=True %}
+  </div>
+
+  <div class="mt-12 grid gap-10 lg:grid-cols-2">
+    <div>
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="font-display text-xl text-ink">Recent designs</h2>
+        <a href="{% url 'design_list' %}" class="text-sm text-ink-muted underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">View all</a>
+      </div>
+      {% if designs %}
+      <ul class="divide-y divide-border rounded-lg border border-border bg-canvas">
+        {% for design in designs %}
+        <li class="flex items-center justify-between gap-3 px-4 py-3">
+          <a href="{% url 'design_editor' design.pk %}" class="min-w-0 font-medium text-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">{{ design.title }}</a>
+          {% if design.pk in submitted_ids %}
+            {% include "components/badge.html" with label="Submitted" variant="success" %}
+          {% else %}
+            {% include "components/badge.html" with label="Draft" variant="muted" %}
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {% include "components/empty_state.html" with title="No designs yet" description="Start a new design to mock up your first shirt." action_label="Start new design" action_href="/app/designs/" %}
+      {% endif %}
+    </div>
+
+    <div>
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="font-display text-xl text-ink">Recent orders</h2>
+        <a href="{% url 'order_list' %}" class="text-sm text-ink-muted underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">View all</a>
+      </div>
+      {% if orders %}
+      <ul class="divide-y divide-border rounded-lg border border-border bg-canvas">
+        {% for order in orders %}
+        <li class="flex items-center justify-between gap-3 px-4 py-3">
+          <div class="min-w-0">
+            <a href="{% url 'order_detail' order.order_id %}" class="font-mono text-sm font-medium text-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">{{ order.order_id }}</a>
+            <p class="truncate text-sm text-ink-muted">{{ order.design.title }}</p>
+          </div>
+          {% include "components/badge.html" with label=order.get_status_display variant="muted" %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {% include "components/empty_state.html" with title="No orders yet" description="Submit a design to create your first job request." %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

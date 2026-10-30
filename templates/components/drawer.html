@@ -1,0 +1,31 @@
+{% comment %}
+  Drawer
+  Vars: id (required), title, side (left|right), class
+  Open: [data-drawer-open="id"]; close: [data-drawer-close]
+{% endcomment %}
+{% with side=side|default:"right" %}
+<div id="{{ id }}"
+     class="fixed inset-0 z-50 hidden"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="{{ id }}-title"
+     data-drawer>
+  <div class="absolute inset-0 bg-ink/50" data-drawer-close tabindex="-1"></div>
+  <div class="absolute inset-y-0 flex w-full max-w-sm flex-col border-border bg-canvas shadow-lg
+              {% if side == 'left' %}left-0 border-r{% else %}right-0 border-l{% endif %}
+              {{ class }}">
+    <div class="flex items-center justify-between border-b border-border px-4 py-3">
+      <h2 id="{{ id }}-title" class="font-display text-lg text-ink">{{ title|default:"Panel" }}</h2>
+      <button type="button"
+              class="rounded-md p-1.5 text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              data-drawer-close
+              aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-4 py-4">
+      {{ body }}
+    </div>
+  </div>
+</div>
+{% endwith %}

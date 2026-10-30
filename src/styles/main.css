@@ -1,0 +1,216 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────
+   Blytz — Dark Premium Streetwear Design Tokens
+   ───────────────────────────────────────────────────── */
+
+@theme {
+  /* Fonts */
+  --font-display: "Bebas Neue", "Anton", "Impact", "Arial Narrow Bold", sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji";
+
+  /* ── Backgrounds ── */
+  --color-bg-page: #000000;
+  --color-bg-surface: #0B0B0B;
+  --color-bg-elevated: #161616;
+  --color-bg-sidebar: #111111;
+  --color-bg-sidebar-hover: #1A1A1A;
+  --color-bg-sidebar-active: #1A1708;
+
+  /* ── Borders ── */
+  --color-border: #222222;
+  --color-border-strong: #333333;
+  --color-border-gold: #D4AF37;
+  --color-border-subtle: #1A1A1A;
+
+  /* ── Text ── */
+  --color-text-primary: #FFFFFF;
+  --color-text-muted: #A3A3A3;
+  --color-text-subtle: #6B6B6B;
+  --color-text-faint: #444444;
+
+  /* ── Accent (gold) ── */
+  --color-accent: #D4AF37;
+  --color-accent-hover: #E6C65A;
+  --color-accent-text: #000000;
+  --color-accent-soft: #1A1708;
+  --color-accent-muted: #8B7420;
+
+  /* ── Status ── */
+  --color-danger: #E5484D;
+  --color-danger-hover: #FF6368;
+  --color-danger-soft: #2A1215;
+  --color-success: #3FB950;
+  --color-success-hover: #56D364;
+  --color-success-soft: #0F2D16;
+  --color-warning: #D29922;
+  --color-warning-hover: #E3B341;
+  --color-warning-soft: #2A2008;
+  --color-info: #58A6FF;
+  --color-info-hover: #79B8FF;
+  --color-info-soft: #0C2D6B;
+  --color-coral: #F97583;
+  --color-coral-soft: #2D1215;
+
+  /* ── Chart palette ── */
+  --color-chart-gold: #D4AF37;
+  --color-chart-green: #3FB950;
+  --color-chart-blue: #58A6FF;
+  --color-chart-amber: #D29922;
+  --color-chart-gray: #6B6B6B;
+  --color-chart-grid: #1F1F1F;
+}
+
+
+/* ─────────────────────────────────────────────────────
+   Base Layer
+   ───────────────────────────────────────────────────── */
+
+@layer base {
+  html {
+    @apply scroll-smooth antialiased;
+  }
+
+  body {
+    @apply bg-bg-page font-sans text-text-primary;
+  }
+
+  /* Headings — Bebas Neue, uppercase, tight tracking */
+  h1, h2, h3, h4 {
+    @apply font-display uppercase tracking-[0.02em] text-text-primary;
+  }
+
+  /* Focus rings — gold */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+
+  /* Scrollbar (webkit) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-bg-page);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-subtle);
+  }
+
+  /* Selection */
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-accent-text);
+  }
+}
+
+/* ─────────────────────────────────────────────────────
+   Component Layer
+   ───────────────────────────────────────────────────── */
+
+@layer components {
+  /* Small uppercase tracking label (section titles, nav items, step labels) */
+  .blytz-label {
+    @apply font-sans uppercase tracking-[0.1em] text-xs font-medium text-text-muted;
+  }
+
+  /* Sidebar group label — even smaller, more muted */
+  .blytz-sidebar-label {
+    @apply font-sans uppercase tracking-[0.12em] text-[10px] font-semibold text-text-subtle;
+  }
+
+  /* Gold-highlighted word inside a hero/heading */
+  .blytz-highlight {
+    @apply text-accent italic font-bold;
+  }
+
+  /* Active nav link — gold text + 2px gold underline */
+  .blytz-nav-active {
+    @apply text-accent border-b-2 border-accent;
+  }
+
+  /* Card hover effect — gold border on hover */
+  .blytz-card-hover {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .blytz-card-hover:hover {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent);
+  }
+
+  /* ── Staff Dashboard Components ── */
+
+  /* Sidebar link */
+  .blytz-sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted transition-colors duration-150;
+  }
+  .blytz-sidebar-link:hover {
+    background-color: var(--color-bg-sidebar-hover);
+    color: var(--color-text-primary);
+  }
+  .blytz-sidebar-link--active {
+    background-color: var(--color-bg-sidebar-active);
+    color: var(--color-accent);
+    border-left: 2px solid var(--color-accent);
+  }
+  .blytz-sidebar-link--active svg,
+  .blytz-sidebar-link--active .blytz-sidebar-icon {
+    color: var(--color-accent);
+  }
+
+  /* KPI card */
+  .blytz-kpi {
+    @apply flex items-center gap-4 rounded-xl border border-border bg-bg-surface p-5;
+  }
+
+  /* Status pill badges */
+  .blytz-pill {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .blytz-pill--gold {
+    @apply bg-accent/10 text-accent border border-accent/30;
+  }
+  .blytz-pill--blue {
+    @apply bg-info/10 text-info border border-info/30;
+  }
+  .blytz-pill--green {
+    @apply bg-success/10 text-success border border-success/30;
+  }
+  .blytz-pill--gray {
+    @apply bg-bg-elevated text-text-muted border border-border;
+  }
+  .blytz-pill--red {
+    @apply bg-coral/10 text-coral border border-coral/30;
+  }
+  .blytz-pill--danger {
+    @apply bg-danger/10 text-danger border border-danger/30;
+  }
+
+  /* Dashboard card (standard panel) */
+  .blytz-panel {
+    @apply rounded-xl border border-border bg-bg-surface;
+  }
+
+  /* Dark table */
+  .blytz-table th {
+    @apply text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-text-subtle px-4 py-3 border-b border-border;
+  }
+  .blytz-table td {
+    @apply px-4 py-3 text-sm text-text-muted border-b border-border-subtle;
+  }
+  .blytz-table tr:hover td {
+    background-color: var(--color-bg-elevated);
+  }
+
+  /* Notification badge */
+  .blytz-badge {
+    @apply absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-accent text-accent-text text-[10px] font-bold px-1;
+  }
+  
+}

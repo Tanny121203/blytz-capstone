@@ -1,0 +1,11 @@
+{% comment %}
+  StatTile
+  Vars: label, value, hint, accent, class
+{% endcomment %}
+<div class="rounded-lg border bg-canvas p-4 sm:p-5
+            {% if accent %}border-gold bg-gold-soft/40{% else %}border-border{% endif %}
+            {{ class }}">
+  <p class="text-xs font-medium uppercase tracking-wide text-ink-subtle">{{ label }}</p>
+  <p class="mt-2 font-display text-3xl text-ink">{{ value }}</p>
+  {% if hint %}<p class="mt-1 text-sm text-ink-muted">{{ hint }}</p>{% endif %}
+</div>

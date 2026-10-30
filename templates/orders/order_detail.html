@@ -1,0 +1,270 @@
+{% extends "base_customer.html" %}
+{% load static %}
+
+{% block title %}{{ order.order_id }} — Blytz{% endblock %}
+
+{% block extra_head %}
+<script src="{% static 'js/payment_details.js' %}" defer></script>
+<script src="{% static 'js/payment_upload.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6"
+         data-payment-upload
+         data-proof-max-mb="{{ PROOF_MAX_UPLOAD_MB }}">
+  <p class="text-sm text-ink-muted">
+    <a href="{% url 'app_home' %}" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Dashboard</a>
+    <span class="mx-1">/</span>
+    <a href="{% url 'order_list' %}" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Orders</a>
+    <span class="mx-1">/</span>
+    <span class="font-mono">{{ order.order_id }}</span>
+  </p>
+
+  <div class="mt-4 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-display text-3xl text-ink">{{ order.order_id }}</h1>
+      <p class="mt-1 text-ink-muted">{{ order.design.title }} · {{ order.get_status_display }}</p>
+    </div>
+    {% if order.payment_status == "Fully Paid" %}
+      {% include "components/badge.html" with label=order.payment_status variant="success" %}
+    {% else %}
+      {% include "components/badge.html" with label=order.payment_status variant="warning" %}
+    {% endif %}
+  </div>
+
+  <div class="mt-8 rounded-lg border border-border bg-canvas p-4 sm:p-6">
+    <h2 class="mb-4 text-sm font-medium uppercase tracking-wide text-ink-subtle">Job phase</h2>
+    {% include "components/stepper.html" with steps=job_steps current=current_step %}
+  </div>
+
+  {% if order.final_design %}
+  <div class="mt-8 rounded-lg border border-border bg-canvas p-4 sm:p-6">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h2 class="font-display text-xl text-ink">Final design</h2>
+        <p class="mt-1 text-sm text-ink-muted">
+          Version {{ order.final_design_version }}
+          {% if order.approved_version %}
+            · you approved v{{ order.approved_version }}
+          {% endif %}
+        </p>
+      </div>
+      {% if can_approve_final_design %}
+      <form method="post" action="{% url 'approve_final_design' order.order_id %}">
+        {% csrf_token %}
+        <input type="hidden" name="version" value="{{ order.final_design_version }}">
+        {% include "components/button.html" with label="Approve final design" type="submit" variant="primary" %}
+      </form>
+      {% endif %}
+    </div>
+    <div class="mt-4">
+      {% if order.final_design_is_pdf %}
+      <a href="{{ order.final_design.url }}"
+         target="_blank"
+         rel="noopener"
+         class="inline-block text-sm underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+        Download final design (PDF)
+      </a>
+      {% elif order.final_design_is_image %}
+      <img src="{{ order.final_design.url }}"
+           alt="Final design version {{ order.final_design_version }}"
+           class="w-full max-h-[32rem] rounded-md border border-border object-contain bg-surface">
+      {% else %}
+      <a href="{{ order.final_design.url }}"
+         target="_blank"
+         rel="noopener"
+         class="inline-block text-sm underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+        Download final design
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="mt-8 grid grid-cols-1 gap-6 md:landscape:grid-cols-2 lg:grid-cols-2">
+    <div class="rounded-lg border border-border bg-canvas p-4 sm:p-6">
+      <h2 class="font-display text-xl text-ink">Mock-up preview</h2>
+      {% if order.preview_image %}
+      <img src="{{ order.preview_image.url }}" alt="Order preview" class="mt-4 w-full rounded-md border border-border object-contain">
+      {% elif order.design.preview_image %}
+      <img src="{{ order.design.preview_image.url }}" alt="Design preview" class="mt-4 w-full rounded-md border border-border object-contain">
+      {% else %}
+      <div class="mt-4 flex h-48 items-center justify-center rounded-md border border-dashed border-border bg-surface font-display text-ink-subtle">
+        Preview placeholder
+      </div>
+      {% endif %}
+      <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt class="text-ink-subtle">Agreed total</dt>
+          <dd class="font-mono text-ink">{% if order.agreed_total %}₱{{ order.agreed_total }}{% else %}Not set{% endif %}</dd>
+        </div>
+        <div>
+          <dt class="text-ink-subtle">Total paid</dt>
+          <dd class="font-mono text-ink">₱{{ order.total_paid }}</dd>
+        </div>
+        <div>
+          <dt class="text-ink-subtle">Balance</dt>
+          <dd class="font-mono text-ink">{% if order.balance is not None %}₱{{ order.balance }}{% else %}—{% endif %}</dd>
+        </div>
+      </dl>
+      {% if order.notes %}
+      <p class="mt-4 text-sm text-ink-muted">{{ order.notes }}</p>
+      {% endif %}
+    </div>
+
+    <div class="rounded-lg border border-border bg-canvas p-4 sm:p-6">
+      <h2 class="font-display text-xl text-ink">Payment history</h2>
+      <p class="mt-1 text-sm text-ink-muted">P2P claims only — money never touches Blytz. Strictly no refunds.</p>
+      {% if payments %}
+      <div class="mt-4 overflow-x-auto rounded-md border border-border md:border md:border-border">
+        <table class="table-responsive-cards w-full border-collapse text-left text-sm md:min-w-[20rem]">
+          <thead>
+            <tr class="border-b border-border bg-surface">
+              <th class="px-3 py-2 font-medium">Amount</th>
+              <th class="px-3 py-2 font-medium">Channel</th>
+              <th class="px-3 py-2 font-medium">Date</th>
+              <th class="px-3 py-2 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            {% for payment in payments %}
+            <tr>
+              <td class="px-3 py-2 font-mono" data-label="Amount">₱{{ payment.amount_claimed }}</td>
+              <td class="px-3 py-2" data-label="Channel">
+                {% if payment.channel %}{{ payment.channel.display_name }}{% elif payment.is_manual_adjustment %}Manual{% else %}—{% endif %}
+              </td>
+              <td class="px-3 py-2 text-ink-muted whitespace-nowrap" data-label="Date">{{ payment.created_at|date:"Y-m-d H:i" }}</td>
+              <td class="px-3 py-2" data-label="Status">
+                {% if payment.status == "accepted" %}
+                  {% include "components/badge.html" with label="Accepted" variant="success" %}
+                {% elif payment.status == "rejected" %}
+                  {% include "components/badge.html" with label="Rejected" variant="danger" %}
+                {% else %}
+                  {% include "components/badge.html" with label="Pending" variant="warning" %}
+                {% endif %}
+                {% if payment.rejection_reason %}
+                <p class="mt-1 text-xs text-danger">{{ payment.rejection_reason }}</p>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="mt-4">
+        {% include "components/empty_state.html" with title="No payments yet" description="Upload proof after you transfer." class="py-8" %}
+      </div>
+      {% endif %}
+
+      <div class="mt-8 border-t border-border pt-6">
+        <h3 class="font-display text-lg text-ink">Send another payment</h3>
+        {% if fully_paid %}
+        <p class="mt-3 rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">Fully paid</p>
+        {% elif pending_payment %}
+        <p class="mt-3 rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-sm text-ink">Payment awaiting staff review</p>
+        {% elif can_upload %}
+        <button type="button"
+                class="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:w-auto"
+                data-payment-sheet-open>
+          Upload payment proof
+        </button>
+        <div id="order-payment-sheet"
+             class="payment-upload-sheet fixed inset-0 z-50 hidden"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="order-payment-sheet-title"
+             data-payment-sheet>
+          <div class="payment-upload-sheet-backdrop absolute inset-0 bg-ink/50" data-payment-sheet-close tabindex="-1"></div>
+          <div class="payment-upload-sheet-panel relative z-10 flex max-h-[100dvh] w-full flex-col overflow-hidden bg-canvas shadow-lg sm:max-h-[90dvh] sm:max-w-lg sm:rounded-lg sm:border sm:border-border">
+            <div class="flex items-center justify-between border-b border-border px-4 py-3"
+                 style="padding-top:max(0.75rem,env(safe-area-inset-top))">
+              <h4 id="order-payment-sheet-title" class="font-display text-lg text-ink">Upload payment proof</h4>
+              <button type="button"
+                      class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                      data-payment-sheet-close
+                      aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <form method="post" enctype="multipart/form-data" class="flex min-h-0 flex-1 flex-col overflow-hidden" data-payment-upload-form>
+              {% csrf_token %}
+              <div class="flex-1 space-y-4 overflow-y-auto px-4 py-4"
+                   style="padding-bottom:max(1rem,env(safe-area-inset-bottom))">
+                {% if channels %}
+                <div>
+                  <label for="order-payment-channel" class="mb-1.5 block text-sm font-medium text-ink">Payment channel</label>
+                  <select id="order-payment-channel"
+                          name="channel"
+                          required
+                          data-channel-select
+                          class="block w-full min-h-11 rounded-md border border-border bg-canvas px-3 py-2.5 text-base text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+                    {% for ch in channels %}
+                    <option value="{{ ch.pk }}"
+                            data-account-name="{{ ch.account_name }}"
+                            data-account-number="{{ ch.account_number }}"
+                            data-instructions="{{ ch.instructions|escape }}"
+                            {% if ch.qr_image %}data-qr-url="{{ ch.qr_image.url }}"{% endif %}>
+                      {{ ch.display_name }} ({{ ch.get_kind_display }})
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <div data-channel-details class="mt-2"></div>
+                </div>
+                {% else %}
+                <p class="text-sm text-danger">No active payment channels. Contact staff on Messenger.</p>
+                {% endif %}
+
+                <div>
+                  <label for="order-payment-amount" class="mb-1.5 block text-sm font-medium text-ink">Amount claimed</label>
+                  <input type="number"
+                         id="order-payment-amount"
+                         name="amount_claimed"
+                         min="0.01"
+                         step="0.01"
+                         inputmode="decimal"
+                         required
+                         value="{{ payment_form.amount_claimed.value|default_if_none:'' }}"
+                         class="block w-full min-h-11 rounded-md border border-border bg-canvas px-3 py-2.5 font-mono text-base text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                         placeholder="0.00">
+                  {% if payment_form.amount_claimed.errors %}
+                  <p class="mt-1 text-sm text-danger">{{ payment_form.amount_claimed.errors|striptags }}</p>
+                  {% endif %}
+                </div>
+
+                <div>
+                  <label for="order-payment-proof" class="mb-1.5 block text-sm font-medium text-ink">Proof of payment</label>
+                  <input type="file"
+                         id="order-payment-proof"
+                         name="proof_file"
+                         accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,image/*,application/pdf"
+                         capture="environment"
+                         required
+                         data-proof-input
+                         class="block w-full min-h-11 rounded-md border border-border bg-canvas px-3 py-2 text-base text-ink file:mr-3 file:rounded file:border-0 file:bg-ink file:px-3 file:py-2 file:text-sm file:font-medium file:text-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink">
+                  <p class="mt-1.5 text-xs text-ink-subtle">PNG, JPG, JPEG, or PDF · camera photos and screenshots OK · max {{ PROOF_MAX_UPLOAD_MB }} MB</p>
+                  <p class="mt-1 text-sm text-danger" data-payment-client-error role="alert">
+                    {% if payment_form.proof_file.errors %}{{ payment_form.proof_file.errors|striptags }}{% endif %}
+                  </p>
+                </div>
+              </div>
+              {% if channels %}
+              <div class="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3"
+                   style="padding-bottom:max(0.75rem,env(safe-area-inset-bottom))">
+                <button type="button"
+                        class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                        data-payment-sheet-close>
+                  Cancel
+                </button>
+                {% include "components/button.html" with label="Upload payment proof" type="submit" variant="primary" %}
+              </div>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

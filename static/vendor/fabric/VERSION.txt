@@ -1,0 +1,5 @@
+Fabric.js 6.6.1
+Source: https://www.npmjs.com/package/fabric/v/6.6.1
+Browser UMD build: dist/index.min.js (saved here as fabric.min.js)
+License: MIT (see LICENSE)
+Pinned for Blytz Stage 1 editor — do not upgrade without re-testing serialization.

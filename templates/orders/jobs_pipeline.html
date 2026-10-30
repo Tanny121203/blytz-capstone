@@ -1,0 +1,120 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Jobs Pipeline — Blytz{% endblock %}
+
+{% block staff_content %}
+
+{# ── Page header ─────────────────────────────────────────── #}
+<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div>
+    <p class="text-xs font-medium uppercase tracking-wider text-text-muted">Staff · Operations</p>
+    <h1 class="mt-1 text-2xl font-bold text-text-primary sm:text-3xl">Jobs Pipeline</h1>
+    <p class="mt-1 text-sm text-text-muted">Move orders forward one phase at a time.</p>
+  </div>
+
+  {% if pending_review %}
+  <div class="flex flex-wrap items-center gap-3">
+    <span class="blytz-pill blytz-pill--gold">Showing orders with payment awaiting review</span>
+    <a href="{% url 'jobs_pipeline' %}"
+       class="text-sm text-accent transition-colors hover:text-accent-hover">
+      Clear filter
+    </a>
+  </div>
+  {% endif %}
+</header>
+
+{# ── Filters ─────────────────────────────────────────────── #}
+<div class="blytz-panel mb-6 p-4">
+  <form method="get" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+    {% if pending_review %}
+    <input type="hidden" name="pending_review" value="1">
+    {% endif %}
+
+    <div class="flex-1">
+      <label for="q" class="mb-1.5 block text-xs uppercase tracking-wider text-text-muted">Search order ID</label>
+      <input type="search" name="q" id="q" value="{{ q }}"
+             class="block w-full rounded-lg border border-border bg-bg-elevated px-3 py-2.5 font-mono text-sm text-text-primary placeholder:text-text-subtle outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
+             placeholder="BLY-######">
+    </div>
+
+    <div class="flex-1">
+      <label for="customer" class="mb-1.5 block text-xs uppercase tracking-wider text-text-muted">Filter customer</label>
+      <input type="search" name="customer" id="customer" value="{{ customer }}"
+             class="block w-full rounded-lg border border-border bg-bg-elevated px-3 py-2.5 text-sm text-text-primary placeholder:text-text-subtle outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
+             placeholder="Name or email">
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit"
+              class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-accent-text transition-colors hover:bg-accent-hover">
+        Apply
+      </button>
+      {% if q or customer or pending_review %}
+      <a href="{% url 'jobs_pipeline' %}"
+         class="text-sm text-text-muted transition-colors hover:text-text-primary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+{# ── Pipeline board ──────────────────────────────────────── #}
+<div data-pipeline>
+
+  {% if not columns.0.orders and not columns.1.orders and not columns.2.orders and not columns.3.orders %}
+  <div class="blytz-panel mb-6 p-12 text-center">
+    <p class="text-text-subtle">No jobs match your search criteria.</p>
+    <a href="{% url 'jobs_pipeline' %}" class="mt-2 inline-block text-accent hover:text-accent-hover">Clear filters</a>
+  </div>
+  {% endif %}
+
+  {# Horizontal scroll on mobile/tablet → fixed 4-up grid on xl #}
+  <div class="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4
+              xl:grid xl:grid-cols-4 xl:overflow-visible xl:pb-0">
+
+    {% for col in columns %}
+    <section id="pipeline-phase-{{ col.status }}"
+             role="region"
+             aria-label="{{ col.label }}"
+             class="pipeline-phase blytz-panel flex w-[85%] shrink-0 snap-start flex-col overflow-hidden
+                    sm:w-[20rem] xl:w-auto xl:shrink">
+
+      {# Accent bar — colour per phase #}
+      <div class="h-1 w-full
+        {% if col.status == 'job_request' %}bg-text-muted
+        {% elif col.status == 'pending_edit' %}bg-accent
+        {% elif col.status == 'production' %}bg-info
+        {% elif col.status == 'completed' %}bg-success
+        {% endif %}"></div>
+
+      {# Column header #}
+      <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <div class="flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full
+            {% if col.status == 'job_request' %}bg-text-muted
+            {% elif col.status == 'pending_edit' %}bg-accent
+            {% elif col.status == 'production' %}bg-info
+            {% elif col.status == 'completed' %}bg-success
+            {% endif %}"></span>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-text-primary">{{ col.label }}</h2>
+        </div>
+        <span class="rounded-full bg-bg-elevated px-2 py-0.5 font-mono text-xs text-text-subtle">{{ col.orders|length }}</span>
+      </div>
+
+      {# Order cards #}
+      <div class="flex flex-col gap-3 p-3">
+        {% for order in col.orders %}
+          {% include "components/pipeline_card.html" with order=order %}
+        {% empty %}
+          <div class="rounded-lg border border-dashed border-border bg-bg-elevated/30 px-3 py-8 text-center">
+            <p class="text-xs text-text-subtle">No orders</p>
+          </div>
+        {% endfor %}
+      </div>
+
+    </section>
+    {% endfor %}
+
+  </div>
+</div>
+
+{% endblock %}

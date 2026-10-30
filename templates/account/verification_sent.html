@@ -1,0 +1,18 @@
+{% extends "account/base_account.html" %}
+
+{% block account_title %}Verify email{% endblock %}
+{% block heading %}Check your inbox{% endblock %}
+
+{% block account_content %}
+{% include "components/card_open.html" with accent=True %}
+  <p class="text-sm text-ink-muted">
+    We sent a verification link to your email. In development, that message is printed in the server console.
+  </p>
+  <p class="mt-4 text-sm text-ink">
+    Follow the link to activate your account, then log in.
+  </p>
+{% include "components/card_close.html" %}
+<div class="mt-6 text-center">
+  {% include "components/button.html" with label="Back to log in" href="/accounts/login/" variant="secondary" %}
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+---
+description: Blytz Capstone project conventions for Django apps, services, and Tailwind.
+alwaysApply: true
+---
+
+# Blytz Capstone Rules
+
+## Layout
+
+- Keep `manage.py` at the repository root. Project package is `config/`.
+- Domain code lives in `apps/<name>` with `name = "apps.<name>"` in each `apps.py`.
+- Register apps in `INSTALLED_APPS` as `"apps.<name>"`.
+- Put remove.bg, AI, and email clients in `services/` wrappers; apps call wrappers, not third-party SDKs directly.
+- Templates go in root `templates/`; static assets in root `static/`; uploads in `media/` (gitignored).
+
+## Settings
+
+- Use `django-environ`. Prefer env vars over hard-coded secrets.
+- Default DB is SQLite via `DATABASE_URL` fallback; MySQL comes later through `DATABASE_URL`.
+- Respect `MESSENGER_PAGE_USERNAME`, `PAYMENT_WINDOW_MINUTES` (default 10), and `PROOF_MAX_UPLOAD_MB` (default 15).
+- Dev email stays on the console backend unless explicitly changed.
+
+## Tailwind
+
+- Theme tokens live in `docs/PROJECT_BRIEF.md` and `src/styles/main.css` (`@theme`).
+- Default UI is black/white (`ink`, `canvas`, `border`, …). Gold (`gold`, `gold-soft`) is optional border or soft background accent only — never primary action fill.
+- Headings: `font-display` (Playfair Display). Body: `font-sans` (GitHub-style system stack).
+- Prefer design-system partials in `templates/components/`. Bases: `base_public.html`, `base_customer.html`, `base_staff.html`.
+- Keep focus rings visible (`focus-visible:outline-ink`). Mobile-first layouts.
+- Use `python manage.py tailwind runserver` (or `tailwind build` / `watch`) via django-tailwind-cli — no Node toolchain.
+- Component gallery: `/dev/components/` (DEBUG only).
+
+## Migrations / User model
+
+- `AUTH_USER_MODEL` is `accounts.User` (email login, `role`, `phone`).
+- Role guards: `apps.accounts.decorators` and `apps.accounts.mixins`.
+- Post-login redirects via `AccountAdapter`: customers → `/app/`, staff/admin → `/staff/`.
+- Keep allauth email verification mandatory; console email backend in development.
+
+## Style
+
+- Match existing Django patterns in this repo; keep changes scoped to the task.
+- Prefer clear names over clever abstractions.

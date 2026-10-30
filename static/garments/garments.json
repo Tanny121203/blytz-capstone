@@ -1,0 +1,76 @@
+{
+  "tee": {
+    "label": "T-shirt",
+    "viewBox": [0, 0, 800, 800],
+    "views": {
+      "front": {
+        "svg": "tee-front.svg",
+        "printAreas": [
+          { "id": "front", "name": "Front", "x": 100, "y": 160, "w": 600, "h": 520 }
+        ]
+      },
+      "back": {
+        "svg": "tee-back.svg",
+        "printAreas": [
+          { "id": "back", "name": "Back", "x": 100, "y": 155, "w": 600, "h": 525 }
+        ]
+      }
+    }
+  },
+  "polo": {
+    "label": "Polo shirt",
+    "viewBox": [0, 0, 800, 800],
+    "views": {
+      "front": {
+        "svg": "polo-front.svg",
+        "printAreas": [
+          { "id": "front", "name": "Front", "x": 100, "y": 175, "w": 600, "h": 505 }
+        ]
+      },
+      "back": {
+        "svg": "polo-back.svg",
+        "printAreas": [
+          { "id": "back", "name": "Back", "x": 100, "y": 160, "w": 600, "h": 510 }
+        ]
+      }
+    }
+  },
+  "hoodie": {
+    "label": "Hoodie",
+    "viewBox": [0, 0, 800, 800],
+    "views": {
+      "front": {
+        "svg": "hoodie-front.svg",
+        "printAreas": [
+          { "id": "front", "name": "Front", "x": 130, "y": 185, "w": 540, "h": 495 }
+        ]
+      },
+      "back": {
+        "svg": "hoodie-back.svg",
+        "printAreas": [
+          { "id": "back", "name": "Back", "x": 130, "y": 210, "w": 540, "h": 470 }
+        ]
+      }
+    }
+  },
+  "jersey": {
+    "label": "Jersey",
+    "viewBox": [0, 0, 800, 800],
+    "views": {
+      "front": {
+        "svg": "jersey-front.svg",
+        "printAreas": [
+          { "id": "front", "name": "Front", "x": 240, "y": 165, "w": 320, "h": 520 }
+        ]
+      },
+      "back": {
+        "svg": "jersey-back.svg",
+        "printAreas": [
+          { "id": "back", "name": "Back", "x": 240, "y": 160, "w": 320, "h": 520 },
+          { "id": "name", "name": "Name", "x": 300, "y": 215, "w": 200, "h": 70 },
+          { "id": "number", "name": "Number", "x": 320, "y": 300, "w": 160, "h": 260 }
+        ]
+      }
+    }
+  }
+}
