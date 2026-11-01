@@ -5021,8 +5021,8 @@
     if (!ctx) {
       return Promise.reject(new Error("Could not create preview canvas."));
     }
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, size, size);
+    // ctx.fillStyle = "#FFFFFF";
+    // ctx.fillRect(0, 0, size, size);
 
     return Promise.all([
       svgMarkupToImage(underMarkup, size),

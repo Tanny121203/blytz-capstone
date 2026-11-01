@@ -44,6 +44,16 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
 .blytz-dark .font-display{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;text-transform:uppercase}
 .blytz-dark input,.blytz-dark select,.blytz-dark textarea{color-scheme:dark}
 .blytz-dark input::placeholder,.blytz-dark textarea::placeholder{color:var(--text-muted)}
+<<<<<<< HEAD
+=======
+.blytz-dark #editor-design-title,
+.blytz-dark [data-editor-title-heading] {
+  text-transform: none !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  letter-spacing: normal !important;
+  font-weight: 600;
+}
+>>>>>>> 83bb9ea (new changes)
 
 /* ---- Top bar ---- */
 .blytz-dark .editor-shell {
@@ -105,7 +115,10 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
 }
 /* Frame the artboard in grey without touching the design surface */
 .blytz-dark #editor-canvas-wrap {
+<<<<<<< HEAD
   padding: 18px;
+=======
+>>>>>>> 83bb9ea (new changes)
   border-radius: 14px;
   background:
     radial-gradient(ellipse 70% 90% at 50% 0%,
@@ -322,6 +335,42 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
 .blytz-dark .design-preview-meta dt{color:var(--text-muted)}
 .blytz-dark .design-preview-meta dd{color:#fff}
 
+<<<<<<< HEAD
+=======
+/* -------------------------------------------------------------
+   Unify readiness text — title, ✓, •, item text, footer note
+   Change the hex below to whatever colour you want.
+   ------------------------------------------------------------- */
+.blytz-dark [data-editor-readiness],
+.blytz-dark [data-editor-readiness] *,
+.blytz-dark [data-design-preview-readiness],
+.blytz-dark [data-design-preview-readiness] * {
+  color: #A3A3A3 !important;              /* ← the shared colour */
+}
+
+/* Footer note inside the preview modal */
+.blytz-dark #design-preview-modal .design-preview-review > p:last-of-type {
+  color: #A3A3A3 !important;
+}
+
+/* Keep the bold "Submit" word visually emphasised */
+.blytz-dark #design-preview-modal .design-preview-review > p:last-of-type strong {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.blytz-dark .design-preview-frame {
+border-radius: 14px;
+  background:
+    radial-gradient(ellipse 70% 90% at 50% 0%,
+      rgba(255, 255, 255, 0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 60% at 50% 100%,
+      rgba(212, 175, 55, 0.14) 0%, transparent 65%),
+    linear-gradient(180deg, #0F0F0F 0%, #0B0B0B 100%);}
+
+
+
+>>>>>>> 83bb9ea (new changes)
 /* ---- Scrollbars ---- */
 .blytz-dark ::-webkit-scrollbar{width:6px;height:6px}
 .blytz-dark ::-webkit-scrollbar-track{background:var(--bg-panel)}
@@ -330,7 +379,11 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
 </style>
 
 <script src="{% static 'vendor/fabric/fabric.min.js' %}?v=stage-h1"></script>
+<<<<<<< HEAD
 <script src="{% static 'js/editor_canvas.js' %}?v=stage-r"></script>
+=======
+<script src="{% static 'js/editor_canvas.js' %}?v=stage-r4"></script>
+>>>>>>> 83bb9ea (new changes)
 <script src="{% static 'js/editor_garments.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/editor_tools.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/remove_bg_client.js' %}?v=stage-r2"></script>
@@ -340,6 +393,10 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
 <script src="{% static 'js/ai_chat.js' %}?v=stage-h1" defer></script>
 <script src="{% static 'js/payment_details.js' %}?v=stage-h1" defer></script>
 <script src="{% static 'js/editor_page.js' %}?v=stage-h1" defer></script>
+<<<<<<< HEAD
+=======
+<script src="{% static 'js/editor_title_sync.js' %}?v=stage-h1" defer></script>
+>>>>>>> 83bb9ea (new changes)
 {% endblock %}
 {% block footer %}{% endblock %}
 {% block content %}
@@ -376,7 +433,11 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
           <span data-editor-title-crumb>{{ design.title }}</span>
         </p>
         {% if already_submitted %}
+<<<<<<< HEAD
         <h1 class="truncate font-display text-lg text-ink sm:text-2xl">{{ design.title }}</h1>
+=======
+        <h1 class="truncate font-display text-lg text-ink sm:text-2xl"editor-title-heading>{{ design.title }}</h1>
+>>>>>>> 83bb9ea (new changes)
         {% else %}
         <label class="sr-only" for="editor-design-title">Design title</label>
         <input id="editor-design-title"
