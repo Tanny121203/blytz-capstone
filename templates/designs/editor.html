@@ -4,12 +4,337 @@
 {% block title %}Editor · {{ design.title }} — Blytz{% endblock %}
 
 {% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   BLYTZ DARK PREMIUM THEME  (visual only)
+   This CSS only changes colors / borders / fonts / shadows. It never
+   changes layout properties the editor JS measures, and no id / data-*
+   hook was removed from the markup below.
+   .blytz-dark is display:contents so it never affects page layout.
+   ===================================================================== */
+.blytz-dark{display:contents}
+:root{
+  --bg-primary:#000;--bg-secondary:#0B0B0B;--bg-panel:#111;--bg-elevated:#1A1A1A;
+  --border-default:#222;--border-strong:#333;
+  --text-primary:#fff;--text-secondary:#A3A3A3;--text-muted:#666;
+  --accent-gold:#D4AF37;--accent-gold-hover:#E5C04B;--accent-gold-soft:rgba(153, 121, 14, 0.1);
+  --danger:#EF4444;
+}
+body{background:var(--bg-primary)!important;color:var(--text-primary)}
+
+/* ---- Remap the site's Tailwind color tokens to the dark theme ---- */
+
+.blytz-dark{font-family:'Inter',system-ui,sans-serif}
+.blytz-dark .bg-canvas{background-color:var(--bg-panel)!important}
+.blytz-dark .bg-surface{background-color:var(--bg-secondary)!important}
+.blytz-dark .bg-ink{background-color:var(--accent-gold)!important}
+.blytz-dark .text-canvas{color:#000!important}
+.blytz-dark .text-ink{color:var(--text-primary)!important}
+.blytz-dark .text-ink-muted{color:var(--text-secondary)!important}
+.blytz-dark .text-ink-subtle{color:var(--text-muted)!important}
+.blytz-dark .text-danger{color:var(--danger)!important}
+.blytz-dark .border-border{border-color:var(--border-default)!important}
+.blytz-dark .border-border-strong{border-color:var(--border-strong)!important}
+.blytz-dark .hover\:bg-surface:hover{background-color:var(--bg-elevated)!important}
+.blytz-dark .hover\:bg-canvas:hover{background-color:var(--bg-elevated)!important}
+.blytz-dark .hover\:bg-ink\/90:hover{background-color:var(--accent-gold-hover)!important}
+.blytz-dark .hover\:text-ink:hover{color:#fff!important}
+.blytz-dark .focus-visible\:outline-ink:focus-visible{outline-color:var(--accent-gold)!important}
+.blytz-dark .font-display{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;text-transform:uppercase}
+.blytz-dark input,.blytz-dark select,.blytz-dark textarea{color-scheme:dark}
+.blytz-dark input::placeholder,.blytz-dark textarea::placeholder{color:var(--text-muted)}
+
+/* ---- Top bar ---- */
+.blytz-dark .editor-shell {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100dvh; /* Forces the editor to fill the full screen height */
+  min-height: 100vh; /* Fallback for older browsers */
+  overflow: hidden; /* Prevents the whole page from scrolling */
+}
+.blytz-dark .editor-shell > .border-b{background:var(--bg-panel)!important;border-color:var(--border-default)!important}
+.blytz-dark #editor-design-title:hover{border-color:var(--border-default)!important}
+.blytz-dark #editor-design-title:focus{border-color:var(--accent-gold)!important;background:transparent!important}
+.blytz-dark .editor-top-actions button:not([data-editor-submit]){
+  background:var(--bg-elevated)!important;color:var(--text-secondary)!important;border-color:var(--border-default)!important;font-size:.75rem}
+.blytz-dark .editor-top-actions button:not([data-editor-submit]):hover:not(:disabled){
+  color:#fff!important;border-color:var(--border-strong)!important}
+.blytz-dark .editor-top-actions [data-editor-submit]{
+  border-radius:9999px!important;background:var(--accent-gold)!important;color:#000!important;
+  font-weight:600;font-size:.75rem;box-shadow:0 0 12px rgba(212,175,55,.3)}
+.blytz-dark .editor-top-actions [data-editor-submit]:hover:not(:disabled){background:var(--accent-gold-hover)!important}
+.blytz-dark .editor-save-status{color:var(--text-muted)!important}
+
+/* ---- Left tool rail ---- */
+.blytz-dark .editor-toolbar{background:var(--bg-panel)!important;border-color:var(--border-default)!important}
+.blytz-dark .editor-toolbar-btn{background:transparent!important;color:var(--text-secondary)!important;border-radius:.75rem;transition:all .15s}
+.blytz-dark .editor-toolbar-btn:hover:not(:disabled){background:var(--bg-elevated)!important;color:#976507!important}
+.blytz-dark .editor-toolbar-btn.is-active,
+.blytz-dark .editor-toolbar-btn[aria-pressed="true"],
+.blytz-dark .editor-toolbar-btn[aria-expanded="true"]{
+  background:var(--accent-gold)!important;color:#000!important;box-shadow:0 0 12px rgba(212,175,55,.3)}
+.blytz-dark .editor-toolbar-btn:disabled{opacity:.3}
+.blytz-dark .editor-toolbar-icon svg{width:1.25rem;height:1.25rem;display:block;margin:0 auto}
+.blytz-dark .editor-toolbar-label{font-size:9px;font-weight:500}
+.blytz-dark .editor-toolbar-feedback{color:var(--text-muted)}
+
+/* ---- Canvas area ---- */
+.blytz-dark #editor-root {
+  background-color: var(--bg-secondary, #0B0B0B) !important;
+  background-image: 
+    /* Soft, wide warm glow in the center/bottom */
+    radial-gradient(ellipse 80% 60% at 50% 65%, rgba(250, 204, 21, 0.08) 0%, transparent 60%),
+    /* Secondary subtle glow near the top */
+    radial-gradient(ellipse 60% 40% at 50% 20%, rgba(212, 175, 55, 0.04) 0%, transparent 50%);
+  background-repeat: no-repeat;
+}
+.blytz-dark #editor-root::before{
+  content:"";
+  position:absolute;
+  top:0;
+  right:0;
+  width:600px;
+  height:600px;
+  border-radius:50%;
+  pointer-events:none;
+  transform:translate(33.3333%,-3rem);
+  background:radial-gradient(circle,rgba(250,204,21,.45) 0%,rgba(250,204,21,.2) 35%,rgba(250,204,21,.06) 60%,transparent 80%);
+  filter:blur(64px);
+  z-index:-1;                         /* NEW — must be -1, not 0, or it covers the canvas */
+}
+/* Frame the artboard in grey without touching the design surface */
+.blytz-dark #editor-canvas-wrap {
+  padding: 18px;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse 70% 90% at 50% 0%,
+      rgba(255, 255, 255, 0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 60% at 50% 100%,
+      rgba(212, 175, 55, 0.14) 0%, transparent 65%),
+    linear-gradient(180deg, #0F0F0F 0%, #0B0B0B 100%);
+  
+}
+.blytz-dark #editor-artboard-scene {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+#editor-zoom-tools-chrome {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important; 
+  align-items: center !important;
+  
+  /* 1. Push contents to the right */
+  justify-content: flex-end !important; 
+  
+  /* 2. Push the entire bar to the right side of its parent */
+  margin-left: auto !important; 
+  margin-right: 16px !important; /* Space from the right edge */
+  
+  /* 3. Override JS centering if it's absolutely positioned */
+  left: auto !important;
+  right: 16px !important;
+  transform: none !important;
+  
+  gap: 12px !important; 
+  width: max-content !important;
+}
+
+
+
+#editor-zoom-chrome,
+#editor-tools-chrome {
+  display: inline-flex !important;
+  position: relative !important;  /* Stops JS from floating them apart */
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  margin: 0 !important;
+  
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px !important;
+  
+  /* Pill styling applied directly to IDs */
+  background: rgba(17, 17, 17, .95) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 9999px !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
+  width: max-content !important;
+}
+
+/* 3. The inner select group (Select/Multi) should NOT have pill styling */
+#editor-select-mode {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+#editor-zoom-tools-chrome button {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  padding: 6px 10px !important;
+  box-sizing: border-box !important;
+  border-radius: 6px !important;
+}
+
+#editor-zoom-tools-chrome .editor-toolbar-label {
+  display: inline !important;
+  white-space: nowrap !important;
+}
+
+/* Dark theme pills */
+.blytz-dark .editor-view-toggle,
+.blytz-dark .editor-zoom-chrome {
+  background: rgba(17,17,17,.95) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 9999px !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
+  /* overflow: hidden removed so buttons aren't clipped */
+}
+
+.blytz-dark .editor-view-toggle button,
+.blytz-dark .editor-zoom-chrome button {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border: none !important;
+  font-weight: 600;
+}
+
+.blytz-dark .editor-view-toggle button:hover,
+.blytz-dark .editor-zoom-chrome button:hover {
+  color: #fff !important;
+}
+
+.blytz-dark .editor-view-toggle button[aria-pressed="true"] {
+  background: var(--accent-gold) !important;
+  color: #000 !important;
+}
+/* ============================================================
+   FORCE TOOL PANEL TO STRETCH TO BOTTOM
+   ============================================================ */
+
+/* 1. Force the outer panel to fill the canvas height */
+#editor-tool-panel {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important; 
+  height: 100% !important;
+  max-height: none !important; /* Overrides any JS height limit */
+  z-index: 20;
+}
+
+.blytz-dark #editor-tool-panel .editor-garment-type-btn {
+  background: var(--bg-elevated) !important;          /* #1A1A1A */
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+/* 2. Make the inner wrapper a flex column so it fills the panel */
+.blytz-dark .editor-tool-panel-chrome {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* 3. Make the body scrollable so it fills the remaining space */
+.blytz-dark .editor-tool-panel-body {
+  flex: 1 !important;
+  overflow-y: auto !important;
+}
+
+
+/* Floating panels (tool panel, properties, context bar) */
+.blytz-dark .editor-tool-panel-chrome,
+.blytz-dark .editor-properties-chrome,
+.blytz-dark .editor-context-bar{
+  background:var(--bg-panel)!important;color:var(--text-primary)!important;
+  border: none !important;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+.blytz-dark .editor-tool-panel-chrome *,
+.blytz-dark .editor-properties-chrome *{border-color:var(--border-default)}
+.blytz-dark .editor-tool-panel-title,
+.blytz-dark .editor-properties-title{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--text-primary)}
+.blytz-dark .editor-tool-panel-close,
+.blytz-dark .editor-properties-icon-btn{color:var(--text-secondary);background:transparent}
+.blytz-dark .editor-tool-panel-close:hover,
+.blytz-dark .editor-properties-icon-btn:hover{color:#fff;background:var(--bg-elevated)}
+.blytz-dark .editor-tool-panel-body input,
+.blytz-dark .editor-tool-panel-body select,
+.blytz-dark .editor-tool-panel-body textarea,
+.blytz-dark .editor-properties-body input,
+.blytz-dark .editor-properties-body select,
+.blytz-dark .editor-properties-body textarea{
+  background:var(--bg-elevated)!important;color:#fff!important;border:1px solid var(--border-default)!important;border-radius:.5rem}
+.blytz-dark .editor-tool-panel-body button,
+.blytz-dark .editor-properties-body button{color:var(--text-secondary)}
+.blytz-dark .editor-tool-panel-body button:hover,
+.blytz-dark .editor-properties-body button:hover{color:#fff}
+.blytz-dark .editor-tool-panel-body [aria-pressed="true"],
+.blytz-dark .editor-tool-panel-body .is-active,
+.blytz-dark .editor-tool-panel-body .is-selected,
+.blytz-dark .editor-tool-panel-body [aria-checked="true"]{border-color:var(--accent-gold)!important;color:var(--accent-gold)!important}
+.blytz-dark .editor-context-bar button{background:transparent;color:var(--text-secondary)}
+.blytz-dark .editor-context-bar button:hover{background:var(--bg-elevated);color:#fff}
+.blytz-dark .editor-props-pill{background:var(--accent-gold)!important;color:#000!important;font-weight:600}
+
+/* ---- AI assistant panel ---- */
+.blytz-dark .ai-assistant-panel{background:var(--bg-panel)!important;border-color:var(--border-default)!important}
+.blytz-dark .ai-assistant-panel textarea{background:var(--bg-elevated)!important;border-color:var(--border-default)!important;color:#fff!important}
+.blytz-dark .ai-assistant-panel textarea:focus{border-color:var(--accent-gold)!important}
+.blytz-dark .ai-assistant-panel [data-ai-starter]{
+  border-radius:9999px;background:var(--bg-elevated)!important;color:var(--text-secondary)!important;border-color:var(--border-default)!important}
+.blytz-dark .ai-assistant-panel [data-ai-starter]:hover{border-color:var(--accent-gold)!important;color:var(--accent-gold)!important}
+.blytz-dark .ai-assistant-panel [data-ai-send]{box-shadow:0 0 12px rgba(212,175,55,.3);font-weight:600}
+.blytz-dark .ai-turn-panel{background:var(--bg-panel)}
+
+/* ---- Drawer / modals ---- */
+.blytz-dark #design-preview-modal .design-preview-panel,
+.blytz-dark #payment-modal > div.relative{background:var(--bg-panel)!important;border-color:var(--border-default)!important;color:#fff}
+.blytz-dark #editor-tools > div.absolute.inset-y-0{background:var(--bg-panel)!important;border-color:var(--border-default)!important}
+.blytz-dark #payment-modal input,
+.blytz-dark #payment-modal select{background:var(--bg-elevated)!important;border-color:var(--border-default)!important;color:#fff!important}
+.blytz-dark #payment-modal input[type="file"]::file-selector-button{background:var(--accent-gold);color:#000}
+.blytz-dark .design-preview-side-tab{color:var(--text-secondary);background:transparent}
+.blytz-dark .design-preview-side-tab.is-active,
+.blytz-dark .design-preview-side-tab[aria-selected="true"]{background:var(--accent-gold);color:#000}
+.blytz-dark .design-preview-frame{background:var(--bg-secondary)}
+.blytz-dark .design-preview-meta dt{color:var(--text-muted)}
+.blytz-dark .design-preview-meta dd{color:#fff}
+
+/* ---- Scrollbars ---- */
+.blytz-dark ::-webkit-scrollbar{width:6px;height:6px}
+.blytz-dark ::-webkit-scrollbar-track{background:var(--bg-panel)}
+.blytz-dark ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:3px}
+.blytz-dark ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+</style>
+
 <script src="{% static 'vendor/fabric/fabric.min.js' %}?v=stage-h1"></script>
-<script src="{% static 'js/editor_canvas.js' %}?v=stage-r2"></script>
+<script src="{% static 'js/editor_canvas.js' %}?v=stage-r"></script>
 <script src="{% static 'js/editor_garments.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/editor_tools.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/remove_bg_client.js' %}?v=stage-r2"></script>
-<script src="{% static 'js/editor_properties.js' %}?v=stage-r2"></script>
+<script src="{% static 'js/editor_properties.js' %}?v=stage-r3"></script>
 <script src="{% static 'js/editor_contract.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/editor_chrome.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/ai_chat.js' %}?v=stage-h1" defer></script>
@@ -18,6 +343,7 @@
 {% endblock %}
 {% block footer %}{% endblock %}
 {% block content %}
+<div class="blytz-dark">
 <div class="editor-shell flex flex-col"
      data-editor-page
      data-save-url="{% url 'design_save' design.pk %}"
@@ -33,11 +359,17 @@
      data-garments-base="{% static 'garments/' %}"
      data-canvas-json="{{ canvas_json_initial|escape }}">
 
+  <!-- ===== TOP BAR ===== -->
   <div class="border-b border-border bg-canvas" style="padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)">
     <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-6 sm:py-3 lg:max-w-none lg:px-6">
       <div class="min-w-0 flex-1">
         <p class="hidden text-xs text-ink-subtle sm:block">
-          <a href="{% url 'app_home' %}" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Dashboard</a>
+            <a href="{% url 'app_home' %}" class="inline-flex items-center gap-1.5 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink hover:text-white transition-colors">
+            <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+            </svg>
+            <span>Dashboard</span>
+          </a>
           <span class="mx-1">/</span>
           <a href="{% url 'design_list' %}" class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Designs</a>
           <span class="mx-1">/</span>
@@ -52,6 +384,7 @@
                name="title"
                maxlength="200"
                value="{{ design.title }}"
+               placeholder="Untitled Design"
                data-editor-title
                class="mt-0.5 w-full max-w-xl truncate rounded-md border border-transparent bg-transparent px-1 py-0.5 font-display text-lg text-ink hover:border-border focus:border-border-strong focus:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:text-2xl">
         {% endif %}
@@ -99,8 +432,12 @@
           </button>
           <button type="button"
                   data-drawer-open="editor-tools"
-                  class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-            Design info
+                  aria-label="Design info"
+                  title="Design info"
+                  class="focus-visible:outline-ink transition-colors inline-flex items-center justify-center">
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
           </button>
         </div>
         <button type="button"
@@ -111,7 +448,7 @@
         <button type="button"
                 data-editor-save
                 class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-3 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:px-4">
-          Save
+          Save Draft
         </button>
         <button type="button"
                 data-editor-submit
@@ -123,25 +460,61 @@
     </div>
   </div>
 
+  <!-- ===== WORKSPACE ===== -->
   <div class="editor-workspace flex min-h-0 flex-1 flex-col lg:flex-row">
-    {# Toolbar is a sibling of #editor-root (not a child) so it does not affect ResizeObserver sizing of the artboard column. #}
+
+    {# LEFT TOOL RAIL. Sibling of #editor-root (NOT a child) so it never affects artboard sizing. #}
     <aside id="editor-toolbar"
            class="editor-toolbar"
            aria-label="Editor tools">
       <div class="editor-toolbar-inner">
         <button type="button"
+                data-editor-action="garment"
+                aria-label="Garment"
+                aria-expanded="false"
+                aria-controls="editor-tool-panel"
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 3h-3l-1 2h-4l-1-2H4l-2 5 4 2v11h12V10l4-2-2-5z"/></svg>
+          </span>
+          <span class="editor-toolbar-label">Garment</span>
+        </button>
+         <button type="button"
+                data-editor-action="layers"
+                aria-label="Layers"
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          </span>
+          <span class="editor-toolbar-label">Layers</span>
+        </button>
+         <button type="button"
+                data-ai-open
+                aria-label="AI Assistant"
+                class="editor-toolbar-btn lg:hidden">
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+          </span>
+          <span class="editor-toolbar-label">AI</span>
+        </button>
+       <span class="editor-toolbar-label">_________________</span>
+        <button type="button"
                 data-editor-action="add-text"
                 aria-label="Text"
                 class="editor-toolbar-btn">
-          <span aria-hidden="true" class="editor-toolbar-icon">T</span>
-          <span class="editor-toolbar-label">Text</span>
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+          </span>
+          <span class="editor-toolbar-label">Insert Text</span>
         </button>
         <button type="button"
                 data-editor-action="add-image"
                 aria-label="Image"
                 class="editor-toolbar-btn">
-          <span aria-hidden="true" class="editor-toolbar-icon">▣</span>
-          <span class="editor-toolbar-label">Image</span>
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          </span>
+          <span class="editor-toolbar-label">Upload Image</span>
         </button>
         <input type="file"
                data-editor-image-input
@@ -150,92 +523,26 @@
                class="sr-only"
                tabindex="-1"
                aria-hidden="true">
-        <button type="button"
-                data-editor-action="garment"
-                aria-label="Garment"
-                aria-expanded="false"
-                aria-controls="editor-tool-panel"
-                class="editor-toolbar-btn">
-          <span aria-hidden="true" class="editor-toolbar-icon">G</span>
-          <span class="editor-toolbar-label">Garment</span>
-        </button>
-        <button type="button"
-                data-ai-open
-                aria-label="AI Assistant"
-                class="editor-toolbar-btn lg:hidden">
-          <span aria-hidden="true" class="editor-toolbar-icon">✦</span>
-          <span class="editor-toolbar-label">AI</span>
-        </button>
-        <button type="button"
-                data-editor-action="layers"
-                aria-label="Layers"
-                class="editor-toolbar-btn">
-          <span aria-hidden="true" class="editor-toolbar-icon">▤</span>
-          <span class="editor-toolbar-label">Layers</span>
-        </button>
-        <button type="button"
-                data-editor-action="auto-layout"
-                aria-label="Auto layout"
-                title="Arrange images and text on the print panel (rule-based)"
-                class="editor-toolbar-btn"
-                data-editor-phone-hide>
-          <span aria-hidden="true" class="editor-toolbar-icon">▦</span>
-          <span class="editor-toolbar-label">Auto Layout</span>
-        </button>
-        {% comment %}Toolbar Front/Back — always reachable; also mirrored by overlay toggle{% endcomment %}
-        <button type="button"
-                data-editor-action="toggle-view"
-                id="editor-view-toggle-btn"
-                aria-label="Garment view: Front"
-                class="editor-toolbar-btn">
-          <span aria-hidden="true" class="editor-toolbar-icon" data-view-toggle-icon>F</span>
-          <span class="editor-toolbar-label" data-view-toggle-label>Front</span>
-        </button>
-        <button type="button"
-                data-editor-action="select"
-                aria-label="Select"
-                aria-pressed="true"
-                data-editor-phone-hide
-                class="editor-toolbar-btn is-active">
-          <span aria-hidden="true" class="editor-toolbar-icon">↖</span>
-          <span class="editor-toolbar-label">Select</span>
-        </button>
-        <button type="button"
-                data-editor-action="multi-select"
-                aria-label="Multi-select"
-                aria-pressed="false"
-                data-editor-phone-hide
-                class="editor-toolbar-btn">
-          <span aria-hidden="true" class="editor-toolbar-icon">☰</span>
-          <span class="editor-toolbar-label">Multi</span>
-        </button>
-        <button type="button"
-                data-editor-action="delete"
-                aria-label="Delete selected"
-                data-editor-phone-hide
-                class="editor-toolbar-btn">
-          <span aria-hidden="true" class="editor-toolbar-icon">⌫</span>
-          <span class="editor-toolbar-label">Delete</span>
-        </button>
+       
+      
         <button type="button"
                 data-editor-action="elements"
                 aria-label="Elements"
                 data-editor-phone-hide
                 class="editor-toolbar-btn">
-          <span aria-hidden="true" class="editor-toolbar-icon">◇</span>
-          <span class="editor-toolbar-label">Elements</span>
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          </span>
+          <span class="editor-toolbar-label">Add Elements</span>
         </button>
       </div>
-      <p class="editor-toolbar-feedback"
-         data-editor-tool-feedback
-         role="status"
-         aria-live="polite"></p>
+  
     </aside>
 
     <div id="editor-root"
          class="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface"
          aria-label="Design canvas">
-      {# Shared tool panel: absolute inside #editor-root so it never changes clientWidth / ResizeObserver sizing. #}
+      {# Shared tool panel (Garment / Layers / Elements etc. are rendered into it by JS). #}
       <div id="editor-tool-panel"
            class="editor-tool-panel"
            role="dialog"
@@ -267,6 +574,12 @@
                 data-editor-view="back"
                 aria-pressed="false">Back</button>
       </div>
+      
+      <div id="editor-zoom-tools-chrome"
+           class="editor-zoom-tools-chrome"
+           role="group"
+           aria-label="Canvas zoom and tools">
+      
       <div id="editor-zoom-chrome"
            class="editor-zoom-chrome"
            role="group"
@@ -284,6 +597,76 @@
                 aria-label="Zoom in"
                 title="Zoom in (Ctrl/=)">+</button>
       </div>
+
+       <!-- PILL 2: TOOLS  -->
+        <div id="editor-tools-chrome"
+             class="editor-tools-chrome"
+             role="group"
+             aria-label="Canvas tools">
+     
+
+        <button type="button"
+                data-editor-action="auto-layout"
+                aria-label="Auto layout"
+                title="Arrange images and text on the print panel (rule-based)"
+                class="editor-toolbar-btn"
+                data-editor-phone-hide>
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+            </svg>
+          </span>
+          <span class="editor-toolbar-label">Auto Layout</span>
+        </button>
+        {% comment %}Toolbar Front/Back: always reachable; also mirrored by overlay toggle{% endcomment %}
+       <div id="editor-select-mode"
+          class="editor-select-group"
+          role="group"
+          aria-label="Selection mode">
+        <button type="button"
+                data-editor-action="select"
+                aria-label="Select"
+                aria-pressed="true"
+                data-editor-phone-hide
+                class="editor-toolbar-btn is-active">
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
+          </span>
+          <span class="editor-toolbar-label">Select</span>
+        </button>
+        <button type="button"
+                data-editor-action="multi-select"
+                aria-label="Multi-select"
+                aria-pressed="false"
+                data-editor-phone-hide
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <!-- Dashed bounding box -->
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/>
+              <!-- Two separate items inside -->
+              <rect x="7" y="7" width="4" height="4" rx="1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <rect x="13" y="13" width="4" height="4" rx="1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+            </svg>
+          </span>
+          <span class="editor-toolbar-label">Multi</span>
+        </button>
+      </div>
+       
+    
+        <button type="button"
+                data-editor-action="delete"
+                aria-label="Delete selected"
+                data-editor-phone-hide
+                class="editor-toolbar-btn">
+          <span aria-hidden="true" class="editor-toolbar-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </span>
+          <span class="editor-toolbar-label">Delete</span>
+        </button>
+      </div>
+      </div>
+   
       <button type="button"
               id="editor-props-pill"
               class="editor-props-pill"
@@ -310,7 +693,7 @@
             <button type="button"
                     class="editor-properties-icon-btn"
                     data-props-close
-                    aria-label="Collapse or close properties">
+                    aria-label="close properties">
               <span aria-hidden="true">×</span>
             </button>
           </div>
@@ -333,14 +716,13 @@
         <div id="editor-canvas-wrap"
              class="overflow-hidden rounded-md border border-border shadow-sm"
              style="touch-action:none">
-          {# Scene scales garment + Fabric together (viewport zoom). Overflow banner stays outside. #}
+          {# Scene scales garment + Fabric together (viewport zoom). #}
           <div id="editor-artboard-scene" class="editor-artboard-scene">
             <canvas id="blytz-fabric-canvas"
                     width="800"
                     height="800"
                     style="touch-action:none"></canvas>
           </div>
-          {# Out-of-flow overlay: must not sit in the host flex column (show/hide would reflow artboard sizing). #}
           <div id="editor-print-overflow-warning"
                class="editor-print-overflow-warning"
                role="status"
@@ -360,13 +742,14 @@
          class="fixed inset-0 z-40 hidden bg-ink/50 lg:hidden"
          aria-hidden="true"></div>
 
+    <!-- ===== RIGHT: AI ASSISTANT ===== -->
     <aside id="ai-assistant"
            class="ai-assistant-panel flex w-full max-w-md flex-col border-border bg-canvas lg:max-w-sm lg:border-l"
            aria-label="AI Assistant"
            aria-hidden="false">
       <div class="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
-          <h2 class="font-display text-lg text-ink">AI Assistant</h2>
+          <h2 class="font-display text-lg text-ink">✦ AI Assistant</h2>
           <p class="text-xs text-ink-subtle" data-ai-mode-label>
             {% if ai_suggest_enabled %}
               Two AI candidates per turn · preview, then edit to keep
@@ -510,7 +893,7 @@
   </div>
 </div>
 
-{% comment %}Stage H: customer design preview / final review (presentation-only; does not mutate the live canvas).{% endcomment %}
+{% comment %}Customer design preview / final review (presentation-only; does not mutate the live canvas).{% endcomment %}
 <div id="design-preview-modal"
      class="fixed inset-0 z-50 hidden items-center justify-center p-4"
      role="dialog"
@@ -746,4 +1129,5 @@
     </form>
   </div>
 </div>
+</div>{# /.blytz-dark #}
 {% endblock %}

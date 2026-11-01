@@ -1731,3 +1731,58 @@ img, svg, video {
   .nav-desktop { display: none !important; }
   .nav-hamburger { display: inline-flex !important; }
 }
+/* ===== Blytz Dark Premium Theme ===== */
+
+/* Page background */
+body {
+  background-color: #000 !important;
+  color: #fff;
+}
+
+/* Slider handles — gold */
+input[type="range"]::-webkit-slider-thumb {
+  background: #D4AF37 !important;
+  border: 2px solid #111 !important;
+}
+input[type="range"]::-moz-range-thumb {
+  background: #D4AF37 !important;
+  border: 2px solid #111 !important;
+}
+
+/* Gold glow utility */
+.gold-glow {
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+}
+
+/* Canvas container override */
+.canvas-container canvas {
+  border-radius: 8px !important;
+}
+
+/* Animations */
+@keyframes blytz-fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: blytz-fadeIn 0.2s ease-out;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #666; }
+
+/* Mobile bottom bar */
+@media (max-width: 768px) {
+  .mobile-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: #111;
+    border-top: 1px solid #222;
+  }
+}

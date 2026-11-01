@@ -61,6 +61,26 @@
   --color-chart-amber: #D29922;
   --color-chart-gray: #6B6B6B;
   --color-chart-grid: #1F1F1F;
+
+    --color-bg-primary: #000000;
+  --color-bg-secondary: #0B0B0B;
+  --color-bg-panel: #111111;
+  --color-bg-elevated: #1A1A1A;
+  --color-border-default: #222222;
+  --color-border-subtle: #1A1A1A;
+  --color-border-strong: #333333;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A3A3A3;
+  --color-text-muted: #666666;
+  --color-accent-gold: #D4AF37;
+  --color-accent-gold-hover: #E5C04B;
+  --color-accent-gold-soft: rgba(212, 175, 55, 0.1);
+  --color-danger: #EF4444;
+  --color-danger-soft: rgba(239, 68, 68, 0.1);
+  --color-success: #22C55E;
+
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
 }
 
 
