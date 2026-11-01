@@ -44,8 +44,6 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
 .blytz-dark .font-display{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;text-transform:uppercase}
 .blytz-dark input,.blytz-dark select,.blytz-dark textarea{color-scheme:dark}
 .blytz-dark input::placeholder,.blytz-dark textarea::placeholder{color:var(--text-muted)}
-<<<<<<< HEAD
-=======
 .blytz-dark #editor-design-title,
 .blytz-dark [data-editor-title-heading] {
   text-transform: none !important;
@@ -53,7 +51,6 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
   letter-spacing: normal !important;
   font-weight: 600;
 }
->>>>>>> 83bb9ea (new changes)
 
 /* ---- Top bar ---- */
 .blytz-dark .editor-shell {
@@ -115,10 +112,6 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
 }
 /* Frame the artboard in grey without touching the design surface */
 .blytz-dark #editor-canvas-wrap {
-<<<<<<< HEAD
-  padding: 18px;
-=======
->>>>>>> 83bb9ea (new changes)
   border-radius: 14px;
   background:
     radial-gradient(ellipse 70% 90% at 50% 0%,
@@ -335,8 +328,6 @@ body{background:var(--bg-primary)!important;color:var(--text-primary)}
 .blytz-dark .design-preview-meta dt{color:var(--text-muted)}
 .blytz-dark .design-preview-meta dd{color:#fff}
 
-<<<<<<< HEAD
-=======
 /* -------------------------------------------------------------
    Unify readiness text — title, ✓, •, item text, footer note
    Change the hex below to whatever colour you want.
@@ -370,7 +361,6 @@ border-radius: 14px;
 
 
 
->>>>>>> 83bb9ea (new changes)
 /* ---- Scrollbars ---- */
 .blytz-dark ::-webkit-scrollbar{width:6px;height:6px}
 .blytz-dark ::-webkit-scrollbar-track{background:var(--bg-panel)}
@@ -379,11 +369,7 @@ border-radius: 14px;
 </style>
 
 <script src="{% static 'vendor/fabric/fabric.min.js' %}?v=stage-h1"></script>
-<<<<<<< HEAD
-<script src="{% static 'js/editor_canvas.js' %}?v=stage-r"></script>
-=======
 <script src="{% static 'js/editor_canvas.js' %}?v=stage-r4"></script>
->>>>>>> 83bb9ea (new changes)
 <script src="{% static 'js/editor_garments.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/editor_tools.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/remove_bg_client.js' %}?v=stage-r2"></script>
@@ -393,10 +379,7 @@ border-radius: 14px;
 <script src="{% static 'js/ai_chat.js' %}?v=stage-h1" defer></script>
 <script src="{% static 'js/payment_details.js' %}?v=stage-h1" defer></script>
 <script src="{% static 'js/editor_page.js' %}?v=stage-h1" defer></script>
-<<<<<<< HEAD
-=======
 <script src="{% static 'js/editor_title_sync.js' %}?v=stage-h1" defer></script>
->>>>>>> 83bb9ea (new changes)
 {% endblock %}
 {% block footer %}{% endblock %}
 {% block content %}
@@ -433,11 +416,7 @@ border-radius: 14px;
           <span data-editor-title-crumb>{{ design.title }}</span>
         </p>
         {% if already_submitted %}
-<<<<<<< HEAD
-        <h1 class="truncate font-display text-lg text-ink sm:text-2xl">{{ design.title }}</h1>
-=======
         <h1 class="truncate font-display text-lg text-ink sm:text-2xl"editor-title-heading>{{ design.title }}</h1>
->>>>>>> 83bb9ea (new changes)
         {% else %}
         <label class="sr-only" for="editor-design-title">Design title</label>
         <input id="editor-design-title"
