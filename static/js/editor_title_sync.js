@@ -1,7 +1,7 @@
 /* editor_title_sync.js
  * Keeps every visible rendering of the design title in sync with
- * the #editor-design-title input while the user types.
- * No server calls; the existing save/submit flow handles persistence.
+' * the #editor-design-title input while the user types.
+' * No server calls; the existing save/submit flow handles persistence.
  */
 (function () {
   'use strict';
