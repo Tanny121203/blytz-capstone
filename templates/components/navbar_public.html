@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {# Fixed navbar — more reliable than sticky in flex layouts #}
 <header class="fixed top-0 left-0 right-0 z-50 bg-black border-b border-[#1F1F1F]" style="padding-top:env(safe-area-inset-top)">
   <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 h-[64px] sm:h-[72px]">
@@ -210,3 +211,76 @@ document.addEventListener('DOMContentLoaded', function () {
     </nav>
   </div>
 </div>
+=======
+<header class="sticky top-0 z-50 border-b border-border bg-canvas" style="padding-top:env(safe-area-inset-top)">
+  <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <a href="{% url 'home' %}" class="font-display text-xl text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Blytz</a>
+    <button type="button" class="nav-hamburger inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border" data-nav-open="public-nav-drawer" aria-label="Open menu">
+      <span aria-hidden="true">☰</span>
+    </button>
+    <nav class="nav-desktop flex-wrap items-center justify-end gap-1 text-sm sm:gap-3" aria-label="Public">
+      <a href="{% url 'home' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Home</a>
+      {% if user.is_authenticated and user.is_customer %}
+        <a href="{% url 'app_home' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Dashboard</a>
+        <a href="{% url 'design_list' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">My Designs</a>
+        <a href="{% url 'order_list' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">My Orders</a>
+        {% if messenger_url %}
+        <a href="{{ messenger_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink" aria-label="Messenger">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.1 2 11.2c0 2.9 1.4 5.5 3.7 7.2V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.52 0 10-4.1 10-9.2S17.52 2 12 2zm1.1 12.4-2.5-2.7-4.9 2.7 5.4-5.7 2.6 2.7 4.8-2.7-5.4 5.7z"/></svg>
+        </a>
+        {% endif %}
+        <a href="{% url 'account_profile' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Profile</a>
+        <a href="{% url 'account_logout' %}" class="inline-flex min-h-11 items-center rounded-md border border-border-strong px-2.5 py-1.5 text-ink">Log out</a>
+      {% elif user.is_authenticated and user.is_staff_role %}
+        <a href="{% url 'home' %}#how-it-works" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">How it works</a>
+        <a href="{% url 'home' %}#gallery" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Gallery</a>
+        <a href="{% url 'home' %}#faq" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">FAQ</a>
+        <a href="{% url 'home' %}#contact" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Contact</a>
+        <a href="{% url 'staff_home' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Staff</a>
+        <a href="{% url 'account_logout' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Log out</a>
+      {% else %}
+        <a href="{% url 'home' %}#how-it-works" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">How it works</a>
+        <a href="{% url 'home' %}#gallery" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Gallery</a>
+        <a href="{% url 'home' %}#faq" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">FAQ</a>
+        <a href="{% url 'home' %}#contact" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Contact</a>
+        <a href="{% url 'account_login' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Log in</a>
+        {% include "components/button.html" with label="Sign up" href="/accounts/signup/" size="sm" variant="primary" %}
+      {% endif %}
+    </nav>
+  </div>
+</header>
+<div id="public-nav-drawer" class="nav-drawer">
+  <div class="nav-drawer-backdrop" data-nav-close></div>
+  <div class="nav-drawer-panel" role="dialog" aria-label="Menu">
+    <div class="mb-4 flex items-center justify-between">
+      <span class="font-display text-lg">Blytz</span>
+      <button type="button" class="inline-flex min-h-11 min-w-11 items-center justify-center" data-nav-close aria-label="Close">×</button>
+    </div>
+    <nav class="flex flex-col gap-1 text-sm">
+      <a href="{% url 'home' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Home</a>
+      {% if user.is_authenticated and user.is_customer %}
+        <a href="{% url 'app_home' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Dashboard</a>
+        <a href="{% url 'design_list' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>My Designs</a>
+        <a href="{% url 'order_list' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>My Orders</a>
+        {% if messenger_url %}<a href="{{ messenger_url }}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Messenger</a>{% endif %}
+        <a href="{% url 'account_profile' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Profile</a>
+        <a href="{% url 'account_logout' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Log out</a>
+      {% elif user.is_authenticated and user.is_staff_role %}
+        <a href="{% url 'home' %}#how-it-works" class="min-h-11 rounded-md px-2 py-3" data-nav-close>How it works</a>
+        <a href="{% url 'home' %}#gallery" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Gallery</a>
+        <a href="{% url 'home' %}#faq" class="min-h-11 rounded-md px-2 py-3" data-nav-close>FAQ</a>
+        <a href="{% url 'home' %}#contact" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Contact</a>
+        <a href="{% url 'staff_home' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Staff</a>
+        <a href="{% url 'account_logout' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Log out</a>
+      {% else %}
+        <a href="{% url 'home' %}#how-it-works" class="min-h-11 rounded-md px-2 py-3" data-nav-close>How it works</a>
+        <a href="{% url 'home' %}#gallery" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Gallery</a>
+        <a href="{% url 'home' %}#faq" class="min-h-11 rounded-md px-2 py-3" data-nav-close>FAQ</a>
+        <a href="{% url 'home' %}#contact" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Contact</a>
+        <a href="{% url 'account_login' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Log in</a>
+        <a href="{% url 'account_signup' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Sign up</a>
+      {% endif %}
+    </nav>
+  </div>
+</div>
+>>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

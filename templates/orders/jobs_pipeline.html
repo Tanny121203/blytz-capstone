@@ -2,6 +2,7 @@
 
 {% block title %}Jobs Pipeline — Blytz{% endblock %}
 
+<<<<<<< HEAD
 {% block staff_content %}
 
 {# ── Page header ─────────────────────────────────────────── #}
@@ -17,10 +18,22 @@
     <span class="blytz-pill blytz-pill--gold">Showing orders with payment awaiting review</span>
     <a href="{% url 'jobs_pipeline' %}"
        class="text-sm text-accent transition-colors hover:text-accent-hover">
+=======
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+  <h1 class="font-display text-3xl text-ink">Jobs Pipeline</h1>
+  <p class="mt-1 text-ink-muted">Move orders forward one phase at a time.</p>
+  {% if pending_review %}
+  <div class="mt-3 flex flex-wrap items-center gap-3">
+    {% include "components/badge.html" with label="Showing orders with payment awaiting review" variant="warning" %}
+    <a href="{% url 'jobs_pipeline' %}"
+       class="text-sm underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+>>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
       Clear filter
     </a>
   </div>
   {% endif %}
+<<<<<<< HEAD
 </header>
 
 {# ── Filters ─────────────────────────────────────────────── #}
@@ -118,3 +131,70 @@
 </div>
 
 {% endblock %}
+=======
+
+  <form method="get" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+    {% if pending_review %}
+    <input type="hidden" name="pending_review" value="1">
+    {% endif %}
+    <div class="flex-1">
+      <label for="q" class="mb-1 block text-sm font-medium text-ink">Search order ID</label>
+      <input type="search" name="q" id="q" value="{{ q }}"
+             class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 font-mono text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+             placeholder="BLY-######">
+    </div>
+    <div class="flex-1">
+      <label for="customer" class="mb-1 block text-sm font-medium text-ink">Filter customer</label>
+      <input type="search" name="customer" id="customer" value="{{ customer }}"
+             class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+             placeholder="Name or email">
+    </div>
+    {% include "components/button.html" with label="Apply" type="submit" variant="primary" %}
+  </form>
+
+  <div class="mt-8" data-pipeline>
+    {% if not columns.0.orders and not columns.1.orders and not columns.2.orders and not columns.3.orders %}
+      {% include "components/empty_state.html" with title="No jobs match" description="Try clearing search filters." %}
+    {% endif %}
+
+    <div class="pipeline-tabs flex gap-1 overflow-x-auto border-b border-border md:hidden"
+         role="tablist" aria-label="Order phases"
+         style="padding-bottom:env(safe-area-inset-bottom,0)">
+      {% for col in columns %}
+      <button type="button"
+              role="tab"
+              data-pipeline-tab="{{ col.status }}"
+              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+              aria-controls="pipeline-phase-{{ col.status }}"
+              id="pipeline-tab-{{ col.status }}"
+              class="pipeline-tab shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium min-h-11 {% if forloop.first %}is-active border-ink text-ink{% else %}border-transparent text-ink-muted{% endif %}">
+        {{ col.label }}
+      </button>
+      {% endfor %}
+    </div>
+
+    <div class="pipeline-board mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {% for col in columns %}
+      <section id="pipeline-phase-{{ col.status }}"
+               role="tabpanel"
+               data-pipeline-panel="{{ col.status }}"
+               aria-labelledby="pipeline-tab-{{ col.status }}"
+               class="pipeline-phase rounded-lg border border-border bg-surface p-3 min-w-0 {% if not forloop.first %}is-inactive{% endif %}">
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <h2 class="font-display text-lg text-ink">{{ col.label }}</h2>
+          <span class="font-mono text-xs text-ink-subtle">{{ col.orders|length }}</span>
+        </div>
+        <div class="flex flex-col gap-2">
+          {% for order in col.orders %}
+            {% include "components/pipeline_card.html" with order=order %}
+          {% empty %}
+            <p class="rounded-md border border-dashed border-border bg-canvas px-3 py-6 text-center text-xs text-ink-subtle">Empty</p>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+>>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

@@ -1731,6 +1731,7 @@ img, svg, video {
   .nav-desktop { display: none !important; }
   .nav-hamburger { display: inline-flex !important; }
 }
+<<<<<<< HEAD
 /* ===== Blytz Dark Premium Theme ===== */
 
 /* Page background */
@@ -1786,3 +1787,5 @@ input[type="range"]::-moz-range-thumb {
     border-top: 1px solid #222;
   }
 }
+=======
+>>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

@@ -1,13 +1,20 @@
 {% comment %}
+<<<<<<< HEAD
   Button — Blytz Dark Premium
   Vars: label (required), href, type (button|submit|reset),
         variant (primary|secondary|ghost|danger),
         size (sm|md|lg), class, attrs, id, name, disabled
+=======
+  Button
+  Vars: label (required), href, type (button|submit|reset), variant (primary|secondary|ghost|danger),
+        size (sm|md|lg), accent (bool — gold border), class, attrs, id, name, disabled
+>>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
 {% endcomment %}
 {% with variant=variant|default:"primary" size=size|default:"md" type=type|default:"button" %}
 {% if href %}
 <a href="{{ href }}"
    {% if id %}id="{{ id }}"{% endif %}
+<<<<<<< HEAD
    class="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
           {% if size == 'sm' %}px-4 py-1.5 text-xs{% elif size == 'lg' %}px-8 py-3.5 text-base{% else %}px-6 py-2.5 text-sm{% endif %}
           {% if variant == 'primary' %}bg-accent text-accent-text hover:bg-accent-hover
@@ -15,6 +22,14 @@
           {% elif variant == 'ghost' %}bg-transparent text-text-muted hover:text-text-primary hover:bg-bg-elevated
           {% elif variant == 'danger' %}border border-danger text-danger bg-transparent hover:bg-danger/10
           {% else %}bg-accent text-accent-text hover:bg-accent-hover{% endif %}
+=======
+   class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink
+          {% if size == 'sm' %}px-3 py-1.5 text-sm{% elif size == 'lg' %}px-5 py-3 text-base{% else %}px-4 py-2 text-sm{% endif %}
+          {% if variant == 'secondary' %}border bg-canvas text-ink hover:bg-surface {% if accent %}border-gold{% else %}border-border-strong{% endif %}
+          {% elif variant == 'ghost' %}bg-transparent text-ink hover:bg-surface {% if accent %}border border-gold{% endif %}
+          {% elif variant == 'danger' %}bg-danger text-canvas hover:bg-ink {% if accent %}border border-gold{% endif %}
+          {% else %}bg-ink text-canvas hover:bg-ink/90 {% if accent %}border border-gold{% endif %}{% endif %}
+>>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
           {% if disabled %}pointer-events-none opacity-40{% endif %}
           {{ class }}"
    {% if disabled %}aria-disabled="true" tabindex="-1"{% endif %}
@@ -24,6 +39,7 @@
         {% if id %}id="{{ id }}"{% endif %}
         {% if name %}name="{{ name }}"{% endif %}
         {% if disabled %}disabled{% endif %}
+<<<<<<< HEAD
         class="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
                {% if size == 'sm' %}px-4 py-1.5 text-xs{% elif size == 'lg' %}px-8 py-3.5 text-base{% else %}px-6 py-2.5 text-sm{% endif %}
                {% if variant == 'primary' %}bg-accent text-accent-text hover:bg-accent-hover
@@ -35,3 +51,15 @@
         {{ attrs }}>{{ label }}</button>
 {% endif %}
 {% endwith %}
+=======
+        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink
+               {% if size == 'sm' %}px-3 py-1.5 text-sm{% elif size == 'lg' %}px-5 py-3 text-base{% else %}px-4 py-2 text-sm{% endif %}
+               {% if variant == 'secondary' %}border bg-canvas text-ink hover:bg-surface {% if accent %}border-gold{% else %}border-border-strong{% endif %}
+               {% elif variant == 'ghost' %}bg-transparent text-ink hover:bg-surface {% if accent %}border border-gold{% endif %}
+               {% elif variant == 'danger' %}bg-danger text-canvas hover:bg-ink {% if accent %}border border-gold{% endif %}
+               {% else %}bg-ink text-canvas hover:bg-ink/90 {% if accent %}border border-gold{% endif %}{% endif %}
+               {{ class }}"
+        {{ attrs }}>{{ label }}</button>
+{% endif %}
+{% endwith %}
+>>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
