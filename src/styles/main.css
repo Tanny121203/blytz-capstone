@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-<<<<<<< HEAD
 /* ─────────────────────────────────────────────────────
    Blytz — Dark Premium Streetwear Design Tokens
    ───────────────────────────────────────────────────── */
@@ -89,34 +88,12 @@
    Base Layer
    ───────────────────────────────────────────────────── */
 
-=======
-/* Blytz design tokens — black/white default; gold is optional accent only */
-@theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
-
-  --color-ink: #0a0a0a;
-  --color-ink-muted: #525252;
-  --color-ink-subtle: #737373;
-  --color-canvas: #ffffff;
-  --color-surface: #fafafa;
-  --color-border: #e5e5e5;
-  --color-border-strong: #0a0a0a;
-  --color-gold: #c9a227;
-  --color-gold-soft: #f7f1de;
-  --color-danger: #b91c1c;
-  --color-success: #15803d;
-  --color-warning: #a16207;
-}
-
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
 @layer base {
   html {
     @apply scroll-smooth antialiased;
   }
 
   body {
-<<<<<<< HEAD
     @apply bg-bg-page font-sans text-text-primary;
   }
 
@@ -257,19 +234,3 @@
   }
   
 }
-=======
-    @apply bg-canvas font-sans text-ink;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4 {
-    @apply font-display tracking-tight text-ink;
-  }
-
-  :focus-visible {
-    @apply outline-2 outline-offset-2 outline-ink;
-  }
-}
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

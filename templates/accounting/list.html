@@ -3,7 +3,6 @@
 
 {% block title %}Accounting — Blytz{% endblock %}
 
-<<<<<<< HEAD
 {% block staff_content %}
 {# Header #}
 <div class="mb-6">
@@ -132,116 +131,9 @@
     </tbody>
   </table>
 </div>
-=======
-{% block content %}
-<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-  <h1 class="font-display text-3xl text-ink">Accounting</h1>
-  <p class="mt-1 text-ink-muted">
-    {% if can_edit %}You can edit agreed totals and adjustments.{% else %}View only — ask an admin for accounting edit access.{% endif %}
-  </p>
-
-  <form method="get" action="{% url 'accounting_export_csv' %}"
-        class="mt-6 flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 sm:flex-row sm:flex-wrap sm:items-end">
-    <div class="min-w-[10rem] flex-1">
-      <label for="export-status" class="mb-1 block text-sm font-medium text-ink">Job status</label>
-      <select name="status" id="export-status"
-              class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-        <option value="">All phases</option>
-        {% for value, label in export_status_choices %}
-        <option value="{{ value }}">{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="min-w-[9rem] flex-1">
-      <label for="export-date-from" class="mb-1 block text-sm font-medium text-ink">From date</label>
-      <input type="date" name="date_from" id="export-date-from"
-             class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-    </div>
-    <div class="min-w-[9rem] flex-1">
-      <label for="export-date-to" class="mb-1 block text-sm font-medium text-ink">To date</label>
-      <input type="date" name="date_to" id="export-date-to"
-             class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-    </div>
-    <div class="flex min-h-11 items-center gap-2 pb-0.5">
-      <input type="checkbox" name="pending_review" id="export-pending-review" value="1"
-             class="h-4 w-4 rounded border-border text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-      <label for="export-pending-review" class="text-sm text-ink">Payment awaiting review</label>
-    </div>
-    {% include "components/button.html" with label="Export CSV" type="submit" variant="secondary" %}
-  </form>
-
-  <div class="mt-8 grid gap-4 sm:grid-cols-2">
-    {% include "components/stat_tile.html" with label="Total collected" value=total_collected %}
-    {% include "components/stat_tile.html" with label="Total outstanding" value=total_outstanding accent=True %}
-  </div>
-
-  {{ collected_chart|json_script:"chart-collected-vs-outstanding" }}
-  {{ collections_chart|json_script:"chart-collections-over-time" }}
-  {{ channel_chart|json_script:"chart-payments-by-channel" }}
-
-  <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-    {% include "components/chart_panel.html" with title="Collected vs outstanding" script_id="chart-collected-vs-outstanding" chart_type="doughnut" rows=collected_chart.rows empty=collected_chart.empty %}
-    {% include "components/chart_panel.html" with title="Payments by channel" script_id="chart-payments-by-channel" chart_type="doughnut" rows=channel_chart.rows empty=channel_chart.empty %}
-  </div>
-  <div class="mt-6">
-    {% include "components/chart_panel.html" with title="Collections over time (30 days)" script_id="chart-collections-over-time" chart_type="line" rows=collections_chart.rows empty=collections_chart.empty %}
-  </div>
-
-  <div class="mt-8 rounded-lg border border-border md:overflow-x-auto">
-    <table class="table-responsive-cards w-full border-collapse text-left text-sm md:min-w-[48rem]">
-      <thead>
-        <tr class="border-b border-border-strong bg-surface">
-          <th class="px-4 py-3 font-medium">Order</th>
-          <th class="px-4 py-3 font-medium">Customer</th>
-          <th class="px-4 py-3 font-medium">Agreed</th>
-          <th class="px-4 py-3 font-medium">Paid</th>
-          <th class="px-4 py-3 font-medium">Balance</th>
-          <th class="px-4 py-3 font-medium">Status</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-border">
-        {% for order in orders %}
-        <tr class="hover:bg-surface">
-          <td class="px-4 py-3" data-label="Order">
-            <a href="{% url 'accounting_detail' order.order_id %}" class="font-mono font-medium underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">{{ order.order_id }}</a>
-          </td>
-          <td class="px-4 py-3" data-label="Customer">{{ order.customer.get_full_name }}</td>
-          <td class="px-4 py-3 font-mono" data-label="Agreed">{% if order.agreed_total %}₱{{ order.agreed_total }}{% else %}—{% endif %}</td>
-          <td class="px-4 py-3 font-mono" data-label="Paid">₱{{ order.total_paid }}</td>
-          <td class="px-4 py-3 font-mono" data-label="Balance">{% if order.balance is not None %}₱{{ order.balance }}{% else %}—{% endif %}</td>
-          <td class="px-4 py-3" data-label="Status">
-            <div class="flex flex-col items-start gap-1">
-              {% if order.payment_status == "Fully Paid" %}
-                {% include "components/badge.html" with label=order.payment_status variant="success" %}
-              {% else %}
-                {% include "components/badge.html" with label=order.payment_status variant="warning" %}
-              {% endif %}
-              {% if order.pending_payment %}
-                {% include "components/badge.html" with label="Payment awaiting review" variant="warning" %}
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr class="md:table-row">
-          <td colspan="6" class="px-4 py-8" data-label="">
-            {% include "components/empty_state.html" with title="No orders yet" description="Orders appear here after customers submit designs." %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'vendor/chartjs/chart.umd.min.js' %}" defer></script>
 <script src="{% static 'js/staff_charts.js' %}" defer></script>
-<<<<<<< HEAD
 {% endblock %}
-=======
-{% endblock %}
-
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

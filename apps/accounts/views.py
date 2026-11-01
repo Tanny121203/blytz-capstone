@@ -17,7 +17,6 @@ from .forms import ProfileForm
 
 @staff_required
 def staff_home(request):
-<<<<<<< HEAD
     from django.db.models import Sum, Count
     from django.utils import timezone
     from datetime import timedelta
@@ -47,22 +46,16 @@ def staff_home(request):
     recent_leads = Lead.objects.select_related('customer', 'order__design').order_by('-created_at')[:4]
     
     # Existing chart data
-=======
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
     orders = Order.objects.all()
     incomplete = Design.objects.prefetch_related("orders")
     incomplete_count = sum(1 for d in incomplete if not d.is_submitted)
     phase_chart = orders_by_phase_chart()
     orders_per_day_chart = new_orders_per_day_chart(days=30)
-<<<<<<< HEAD
     
-=======
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
     return render(
         request,
         "accounts/staff_home.html",
         {
-<<<<<<< HEAD
             # KPI data
             "total_orders": total_orders,
             "pending_review_count": pending_review_count,
@@ -75,8 +68,6 @@ def staff_home(request):
             "recent_leads": recent_leads,
             
             # Existing chart data (keep for Step 4)
-=======
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
             "stat_orders": orders.count(),
             "stat_job_requests": orders.filter(status=Order.Status.JOB_REQUEST).count(),
             "stat_leads": Lead.objects.count(),
@@ -86,11 +77,6 @@ def staff_home(request):
             "orders_per_day_chart": orders_per_day_chart,
         },
     )
-<<<<<<< HEAD
-=======
-
-
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
 @admin_required
 def staff_admin_only(request):
     return render(request, "accounts/staff_admin_only.html")

@@ -1,5 +1,4 @@
 {% extends "base_staff.html" %}
-<<<<<<< HEAD
 
 {% block title %}Staff Dashboard — Blytz{% endblock %}
 
@@ -163,45 +162,3 @@
 </div>
 
 {% endblock %}
-=======
-{% load static %}
-
-{% block title %}Staff — Blytz{% endblock %}
-
-{% block content %}
-<section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-  <h1 class="font-display text-3xl text-ink">Overview</h1>
-  <p class="mt-2 text-ink-muted">Hello, {{ user.get_short_name }}.</p>
-
-  <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-    {% include "components/stat_tile.html" with label="Orders" value=stat_orders %}
-    {% include "components/stat_tile.html" with label="Job requests" value=stat_job_requests %}
-    {% include "components/stat_tile.html" with label="Leads" value=stat_leads %}
-    {% include "components/stat_tile.html" with label="Incomplete designs" value=stat_incomplete accent=True %}
-    <a href="{% url 'jobs_pipeline' %}?pending_review=1"
-       class="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-      {% include "components/stat_tile.html" with label="Payments awaiting review" value=stat_pending_review hint="View orders with a pending claim" %}
-    </a>
-  </div>
-
-  {{ phase_chart|json_script:"chart-orders-by-phase" }}
-  {{ orders_per_day_chart|json_script:"chart-orders-per-day" }}
-
-  <div class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
-    {% include "components/chart_panel.html" with title="Orders by phase" script_id="chart-orders-by-phase" chart_type="bar" rows=phase_chart.rows empty=phase_chart.empty %}
-    {% include "components/chart_panel.html" with title="New orders (30 days)" script_id="chart-orders-per-day" chart_type="line" rows=orders_per_day_chart.rows empty=orders_per_day_chart.empty %}
-  </div>
-
-  <div class="mt-10 flex flex-wrap gap-3">
-    {% include "components/button.html" with label="Jobs pipeline" href="/staff/jobs/" variant="primary" %}
-    {% include "components/button.html" with label="Accounting" href="/staff/accounting/" variant="secondary" %}
-    {% include "components/button.html" with label="Sales" href="/staff/sales/" variant="secondary" %}
-  </div>
-</section>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}" defer></script>
-<script src="{% static 'js/staff_charts.js' %}" defer></script>
-{% endblock %}
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

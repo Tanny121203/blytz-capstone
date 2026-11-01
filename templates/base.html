@@ -7,28 +7,19 @@
   <title>{% block title %}Blytz{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<<<<<<< HEAD
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Anton&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
-=======
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
   {% tailwind_css %}
   <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
-<<<<<<< HEAD
 <body class="flex min-h-[100dvh] flex-col bg-bg-page text-text-primary antialiased" style="padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);">
-=======
-<body class="flex min-h-[100dvh] flex-col bg-canvas text-ink antialiased" style="padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);">
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
   <a href="#main" class="blytz-skip-link">Skip to main content</a>
   {% block navbar %}{% endblock %}
   {% include "components/messages.html" %}
   <main id="main" class="flex-1 overflow-x-hidden" tabindex="-1">
     {% block content %}{% endblock %}
   </main>
-<<<<<<< HEAD
   {% block footer %}
     {% include "components/footer.html" %}
   {% endblock %}
@@ -38,11 +29,3 @@
   {% block extra_js %}{% endblock %}
 </body>
 </html>
-=======
-  {% include "components/footer.html" %}
-  <script src="{% static 'js/ui.js' %}" defer></script>
-  <script src="{% static 'js/nav.js' %}" defer></script>
-  {% block extra_js %}{% endblock %}
-</body>
-</html>
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

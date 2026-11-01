@@ -1,5 +1,4 @@
 {% with username=MESSENGER_PAGE_USERNAME %}
-<<<<<<< HEAD
 <footer class="relative mt-auto overflow-hidden border-t border-border bg-gradient-to-b from-bg-surface via-bg-surface to-bg-page">
 
   {# Gold hairline along the top edge #}
@@ -115,26 +114,3 @@
   </div>
 </footer>
 {% endwith %}
-=======
-<footer class="mt-auto border-t border-border bg-surface">
-  <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-    <div>
-      <p class="font-display text-lg text-ink">Blytz</p>
-      <p class="mt-1 text-sm text-ink-muted">Custom designs &amp; orders</p>
-    </div>
-    <div class="text-sm">
-      {% if username %}
-      <a href="https://m.me/{{ username }}"
-         target="_blank"
-         rel="noopener noreferrer"
-         class="inline-flex items-center gap-2 rounded-md border border-border bg-canvas px-4 py-2 font-medium text-ink hover:border-gold hover:bg-gold-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-        Message us on Messenger
-      </a>
-      {% else %}
-      <p class="text-ink-subtle">Messenger link unavailable (set MESSENGER_PAGE_USERNAME)</p>
-      {% endif %}
-    </div>
-  </div>
-</footer>
-{% endwith %}
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

@@ -1,11 +1,7 @@
 {% extends "base_public.html" %}
 {% load static %}
 
-<<<<<<< HEAD
 {% block title %}Blytz — Custom Streetwear{% endblock %}
-=======
-{% block title %}Blytz Clothing — Custom mock-ups{% endblock %}
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
 
 {% block extra_head %}
 <script src="{% static 'js/demo-widget.js' %}" defer></script>
@@ -13,7 +9,6 @@
 
 {% block content %}
 {# —— Hero —— #}
-<<<<<<< HEAD
 <section
   class="relative border-b border-border bg-bg-surface"
   style="
@@ -33,44 +28,22 @@
       <p class="mt-5 max-w-md text-lg text-text-muted">
         Design custom apparel that speaks your language. From concept to creation,
         Blytz brings your vision to life with premium quality and street-ready style.
-=======
-<section class="border-b border-border bg-surface">
-  <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20">
-    <div>
-      <p class="text-xs font-medium uppercase tracking-widest text-ink-subtle">Blytz Clothing</p>
-      <h1 class="mt-3 font-display text-4xl text-ink sm:text-5xl lg:text-6xl">
-        Mock up your shirt. Order with confidence.
-      </h1>
-      <p class="mt-5 max-w-md text-lg text-ink-muted">
-        Design on a live preview, submit for production, and pay peer-to-peer.
-        We track your order — money never touches our system.
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
       </p>
       <div class="mt-8 flex flex-wrap gap-3">
         {% if user.is_authenticated and user.is_customer %}
         <form method="post" action="{% url 'design_create' %}">
           {% csrf_token %}
-<<<<<<< HEAD
           {% include "components/button.html" with label="Start designing ➡" type="submit" variant="primary" size="lg" %}
         </form>
         {% else %}
         {% include "components/button.html" with label="Start designing ➡" href="/accounts/login/" variant="primary" size="lg" %}
         {% endif %}
         <a href="{% url 'home' %}#how-it-works" class="inline-flex min-h-11 items-center rounded-full border border-text-primary px-6 py-2.5 text-sm font-semibold text-text-primary hover:bg-bg-elevated">
-=======
-          {% include "components/button.html" with label="Start designing" type="submit" variant="primary" size="lg" %}
-        </form>
-        {% else %}
-        {% include "components/button.html" with label="Start designing" href="/accounts/login/" variant="primary" size="lg" %}
-        {% endif %}
-        <a href="{% url 'home' %}#how-it-works" class="inline-flex min-h-11 items-center rounded-md px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
           How it works
         </a>
       </div>
     </div>
 
-<<<<<<< HEAD
     <!-- {# Demo-only widget — no save, no upload #}
     <div class="rounded-xl border border-border bg-bg-surface p-4 sm:p-6" id="demo-widget" data-demo-widget>
       <p class="blytz-label mb-4">Try a demo · not saved</p>
@@ -81,36 +54,17 @@
                   d="M40 50 L70 40 L85 60 L115 60 L130 40 L160 50 L150 80 L140 80 L140 190 L60 190 L60 80 L50 80 Z"
                   fill="#0D0D0D"
                   stroke="#2A2A2A"
-=======
-    {# Demo-only widget — no save, no upload #}
-    <div class="rounded-lg border border-border bg-canvas p-4 sm:p-6" id="demo-widget" data-demo-widget>
-      <p class="mb-4 text-xs font-medium uppercase tracking-wide text-ink-subtle">Try a demo · not saved</p>
-      <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
-        <div class="mx-auto flex w-full max-w-[220px] items-center justify-center rounded-lg border border-border bg-surface p-4">
-          <svg viewBox="0 0 200 220" class="h-48 w-full" aria-hidden="true">
-            <path id="demo-shirt"
-                  d="M40 50 L70 40 L85 60 L115 60 L130 40 L160 50 L150 80 L140 80 L140 190 L60 190 L60 80 L50 80 Z"
-                  fill="#0B0B0C"
-                  stroke="#E4E4E1"
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
                   stroke-width="2"/>
             <text id="demo-shirt-text"
                   x="100" y="130"
                   text-anchor="middle"
-<<<<<<< HEAD
                   fill="#D4AF37"
                   font-family="Bebas Neue, Impact, sans-serif"
                   font-size="16">Blytz</text>
-=======
-                  fill="#FFFFFF"
-                  font-family="Georgia, serif"
-                  font-size="14">Blytz</text>
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
           </svg>
         </div>
         <div class="flex flex-1 flex-col gap-4">
           <div>
-<<<<<<< HEAD
             <p class="blytz-label mb-2">Color</p>
             <div class="flex flex-wrap gap-2" role="group" aria-label="Shirt color">
               <button type="button" class="h-11 w-11 rounded-lg border-2 border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" data-demo-color="#0D0D0D" data-demo-text="#D4AF37" style="background:#0D0D0D" aria-label="Black"></button>
@@ -123,20 +77,6 @@
             <label for="demo-text-input" class="blytz-label mb-1.5 block">Text on shirt</label>
             <input id="demo-text-input" type="text" maxlength="24" value="Blytz"
                    class="block w-full rounded-lg border border-border bg-bg-elevated px-3 py-2.5 text-base text-text-primary focus:border-accent focus:ring-1 focus:ring-accent outline-none"
-=======
-            <p class="mb-2 text-sm font-medium text-ink">Color</p>
-            <div class="flex flex-wrap gap-2" role="group" aria-label="Shirt color">
-              <button type="button" class="h-11 w-11 rounded-lg border-2 border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" data-demo-color="#0B0B0C" data-demo-text="#FFFFFF" style="background:#0B0B0C" aria-label="Black"></button>
-              <button type="button" class="h-11 w-11 rounded-lg border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" data-demo-color="#FFFFFF" data-demo-text="#0B0B0C" style="background:#FFFFFF" aria-label="White"></button>
-              <button type="button" class="h-11 w-11 rounded-lg border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" data-demo-color="#1e3a5f" data-demo-text="#FFFFFF" style="background:#1e3a5f" aria-label="Navy"></button>
-              <button type="button" class="h-11 w-11 rounded-lg border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" data-demo-color="#6B6B66" data-demo-text="#FFFFFF" style="background:#6B6B66" aria-label="Gray"></button>
-            </div>
-          </div>
-          <div>
-            <label for="demo-text-input" class="mb-1.5 block text-sm font-medium text-ink">Text on shirt</label>
-            <input id="demo-text-input" type="text" maxlength="24" value="Blytz"
-                   class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-base text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
                    data-demo-text-input>
           </div>
           {% if user.is_authenticated and user.is_customer %}
@@ -148,16 +88,11 @@
           {% include "components/button.html" with label="Sign in to start designing" href="/accounts/login/" variant="secondary" class="w-full justify-center" %}
           {% endif %}
         </div>
-<<<<<<< HEAD
       </div> -->
-=======
-      </div>
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
     </div>
   </div>
 </section>
 
-<<<<<<< HEAD
 {# —— Features Bar —— #}
 <section class="border-b border-border bg-bg-surface">
   <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
@@ -229,37 +164,6 @@
         <div class="border-t border-border p-4">
           <h3 class="font-medium text-text-primary">{{ item.title }}</h3>
           <p class="mt-1 text-sm text-text-muted">{{ item.caption }}</p>
-=======
-{# —— How it works —— #}
-<section id="how-it-works" class="scroll-mt-24 py-16 sm:py-20">
-  <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">How it works</h2>
-    <p class="mt-2 max-w-xl text-ink-muted">Four steps from idea to delivery. Payments stay peer-to-peer.</p>
-    <ol class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {% for step in how_steps %}
-      <li class="rounded-lg border border-border bg-canvas p-5">
-        <span class="font-mono text-sm text-ink-subtle">{{ forloop.counter }}</span>
-        <h3 class="mt-2 font-display text-xl text-ink">{{ step.title }}</h3>
-        <p class="mt-2 text-sm text-ink-muted">{{ step.body }}</p>
-      </li>
-      {% endfor %}
-    </ol>
-  </div>
-</section>
-
-{# —— Gallery —— #}
-<section id="gallery" class="scroll-mt-24 border-y border-border bg-surface py-16 sm:py-20">
-  <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">Gallery</h2>
-    <p class="mt-2 text-ink-muted">Sample looks — placeholders until your catalog goes live.</p>
-    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {% for item in gallery_items %}
-      <article class="overflow-hidden rounded-lg border border-border bg-canvas">
-        <div class="flex h-40 items-center justify-center bg-ink/5 font-display text-2xl text-ink-subtle">{{ item.label }}</div>
-        <div class="border-t border-border p-4">
-          <h3 class="font-medium text-ink">{{ item.title }}</h3>
-          <p class="mt-1 text-sm text-ink-muted">{{ item.caption }}</p>
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
         </div>
       </article>
       {% endfor %}
@@ -267,7 +171,6 @@
   </div>
 </section>
 
-<<<<<<< HEAD
 
 {# —— How it works —— #}
 <section id="how-it-works" class="scroll-mt-24 py-16 sm:py-20">
@@ -411,24 +314,12 @@
             </p>
           </div>
         </footer>
-=======
-{# —— Testimonials —— #}
-<section id="testimonials" class="scroll-mt-24 py-16 sm:py-20">
-  <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">What customers say</h2>
-    <div class="mt-10 grid gap-4 md:grid-cols-3">
-      {% for t in testimonials %}
-      <blockquote class="rounded-lg border border-border bg-canvas p-5">
-        <p class="text-sm text-ink">“{{ t.quote }}”</p>
-        <footer class="mt-4 text-sm font-medium text-ink-muted">— {{ t.name }}</footer>
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b
       </blockquote>
       {% endfor %}
     </div>
   </div>
 </section>
 
-<<<<<<< HEAD
 {# ——  FAQ —— #}
 <section id="faq" class="scroll-mt-24 py-16 sm:py-20">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
@@ -579,44 +470,3 @@
   </div>
 </section>
 {% endblock %}
-=======
-{# —— FAQ —— #}
-<section id="faq" class="scroll-mt-24 border-y border-border bg-surface py-16 sm:py-20">
-  <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">FAQ</h2>
-    <div class="mt-10 max-w-3xl divide-y divide-border rounded-lg border border-border bg-canvas">
-      {% for item in faqs %}
-      <details class="group p-4 open:bg-surface/50">
-        <summary class="cursor-pointer list-none text-sm font-medium text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink [&::-webkit-details-marker]:hidden">
-          {{ item.q }}
-        </summary>
-        <p class="mt-3 text-sm text-ink-muted">{{ item.a }}</p>
-      </details>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-{# —— Contact —— #}
-<section id="contact" class="scroll-mt-24 py-16 sm:py-20">
-  <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">Contact</h2>
-    <p class="mt-2 max-w-xl text-ink-muted">
-      Questions about sizing, artwork, or payment? Message us on Messenger — we reply there.
-    </p>
-    <div class="mt-8 flex flex-wrap gap-3">
-      {% if messenger_url %}
-        {% include "components/button.html" with label="Open Messenger" href=messenger_url variant="primary" %}
-      {% else %}
-        {% include "components/button.html" with label="Open Messenger" href="#" variant="primary" disabled=True %}
-      {% endif %}
-      {% if user.is_authenticated and user.is_customer %}
-        {% include "components/button.html" with label="Go to dashboard" href="/app/" variant="secondary" %}
-      {% elif not user.is_authenticated %}
-        {% include "components/button.html" with label="Create an account" href="/accounts/signup/" variant="secondary" %}
-      {% endif %}
-    </div>
-  </div>
-</section>
-{% endblock %}
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

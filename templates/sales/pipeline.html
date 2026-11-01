@@ -2,7 +2,6 @@
 
 {% block title %}Sales Pipeline — Blytz{% endblock %}
 
-<<<<<<< HEAD
 {% block staff_content %}
 {# Header #}
 <div class="mb-6">
@@ -120,97 +119,3 @@
 </div>
 {% endif %}
 {% endblock %}
-=======
-{% block content %}
-<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-  <h1 class="font-display text-3xl text-ink">Sales Pipeline</h1>
-  <p class="mt-1 text-ink-muted">Leads are submitted requests. Unsubmitted designs stay in Incomplete.</p>
-
-  <div class="mt-6 flex gap-2 overflow-x-auto border-b border-border" role="tablist">
-    <a href="?tab=leads"
-       class="shrink-0 border-b-2 px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink {% if tab != 'incomplete' %}border-ink text-ink{% else %}border-transparent text-ink-muted{% endif %}">
-      Leads
-    </a>
-    <a href="?tab=incomplete"
-       class="shrink-0 border-b-2 px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink {% if tab == 'incomplete' %}border-ink text-ink{% else %}border-transparent text-ink-muted{% endif %}">
-      Incomplete designs
-    </a>
-  </div>
-
-  {% if tab == "incomplete" %}
-  <div class="mt-6 rounded-lg border border-border md:overflow-x-auto">
-    <table class="table-responsive-cards w-full border-collapse text-left text-sm md:min-w-[32rem]">
-      <thead>
-        <tr class="border-b border-border-strong bg-surface">
-          <th class="px-4 py-3 font-medium">Design</th>
-          <th class="px-4 py-3 font-medium">Customer</th>
-          <th class="px-4 py-3 font-medium">Updated</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-border">
-        {% for design in incomplete_designs %}
-        <tr>
-          <td class="px-4 py-3" data-label="Design">{{ design.title }}</td>
-          <td class="px-4 py-3" data-label="Customer">{{ design.owner.get_full_name }}</td>
-          <td class="px-4 py-3 font-mono text-xs" data-label="Updated">{{ design.updated_at|date:"Y-m-d H:i" }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="3" class="px-4 py-8 text-center text-ink-muted" data-label="">No incomplete designs.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="mt-6 space-y-8">
-    {% for stage in stages %}
-    <div>
-      <h2 class="font-display text-xl text-ink">{{ stage.label }} <span class="font-sans text-sm text-ink-subtle">({{ stage.leads|length }})</span></h2>
-      {% if not stage.leads %}
-        {% include "components/empty_state.html" with title="No leads in this stage" class="mt-3" %}
-      {% else %}
-      <div class="mt-3 rounded-lg border border-border md:overflow-x-auto">
-        <table class="table-responsive-cards w-full border-collapse text-left text-sm md:min-w-[40rem]">
-          <thead>
-            <tr class="border-b border-border-strong bg-surface">
-              <th class="px-4 py-3 font-medium">Customer</th>
-              <th class="px-4 py-3 font-medium">Order</th>
-              <th class="px-4 py-3 font-medium">Created</th>
-              <th class="px-4 py-3 font-medium">Stage</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            {% for lead in stage.leads %}
-            <tr class="hover:bg-surface">
-              <td class="px-4 py-3" data-label="Customer">
-                <a href="{% url 'lead_detail' lead.pk %}" class="font-medium underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">{{ lead.customer.get_full_name }}</a>
-              </td>
-              <td class="px-4 py-3 font-mono" data-label="Order">
-                <a href="{% url 'staff_order_detail' lead.order.order_id %}" class="underline-offset-2 hover:underline">{{ lead.order.order_id }}</a>
-              </td>
-              <td class="px-4 py-3 font-mono text-xs" data-label="Created">{{ lead.created_at|date:"Y-m-d" }}</td>
-              <td class="px-4 py-3" data-label="Stage">
-                <form method="post" action="{% url 'update_lead_stage' lead.pk %}" class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  {% csrf_token %}
-                  <input type="hidden" name="next" value="{% url 'sales_pipeline' %}">
-                  <select name="stage"
-                          class="min-h-11 w-full rounded-md border border-border bg-canvas px-2 py-1.5 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:w-auto sm:text-sm"
-                          onchange="this.form.submit()">
-                    {% for value, label in stage_choices %}
-                    <option value="{{ value }}" {% if lead.stage == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                  </select>
-                </form>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-</section>
-{% endblock %}
->>>>>>> ee4c6b1078a0bc948f6ceb29f49a5387da28f05b

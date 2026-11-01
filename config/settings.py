@@ -34,7 +34,7 @@ SECRET_KEY = env("SECRET_KEY", default=_DEFAULT_SECRET_KEY)
 
 DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1",".github.dev"])
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 # Behind Railway / reverse proxies that terminate TLS
