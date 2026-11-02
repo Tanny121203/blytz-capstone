@@ -226,6 +226,7 @@ def design_submit(request, pk):
     canvas = form.cleaned_data["canvas_json"]
     preview_front = form.cleaned_data["preview_image"]
     preview_back = form.cleaned_data["preview_back_image"]
+    reference_number = request.POST.get("reference_number", "")
 
     # One retry: SQLite can return "database is locked" immediately when two
     # deferred transactions both already hold a read lock. After this request
@@ -278,6 +279,7 @@ def design_submit(request, pk):
                         channel=channel,
                         amount_claimed=amount,
                         proof_file=proof,
+                        reference_number=reference_number,
                     )
                     Lead.objects.create(
                         customer=request.user,

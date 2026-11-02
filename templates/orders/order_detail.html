@@ -247,6 +247,16 @@
                     {% if payment_form.proof_file.errors %}{{ payment_form.proof_file.errors|striptags }}{% endif %}
                   </p>
                 </div>
+                <div>
+                  <label for="order-payment-ref" class="mb-1.5 block text-sm font-medium text-ink">Reference Number</label>
+                  <input type="text"
+                        id="order-payment-ref"
+                        name="reference_number"
+                        maxlength="100"
+                        class="block w-full min-h-11 rounded-md border border-border bg-canvas px-3 py-2.5 text-base text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                        placeholder="Enter reference / transaction number">
+                  <p class="mt-1.5 text-xs text-ink-subtle">The reference number from your GCash, Maya, or bank transfer</p>
+                </div>
               </div>
               {% if channels %}
               <div class="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3"

@@ -3,60 +3,80 @@
 {% block title %}Sales Pipeline — Blytz{% endblock %}
 
 {% block staff_content %}
-{# Header #}
-<div class="mb-6">
-  <h1 class="text-2xl font-bold text-text-primary">Sales Pipeline</h1>
-  <p class="text-sm text-text-muted mt-1">Leads are submitted requests. Unsubmitted designs stay in Incomplete.</p>
-</div>
 
-{# Tabs #}
-<div class="flex gap-2 overflow-x-auto border-b border-border mb-6" role="tablist">
-  <a href="?tab=leads"
-     class="shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors {% if tab != 'incomplete' %}border-accent text-accent{% else %}border-transparent text-text-muted hover:text-text-primary{% endif %}">
-    Leads
-  </a>
-  <a href="?tab=incomplete"
-     class="shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors {% if tab == 'incomplete' %}border-accent text-accent{% else %}border-transparent text-text-muted hover:text-text-primary{% endif %}">
-    Incomplete designs
-  </a>
-</div>
+{# ── Page header ─────────────────────────────────────────── #}
+<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div>
+    <p class="text-xs font-medium uppercase tracking-wider text-text-muted">Staff · Sales</p>
+    <h1 class="mt-1 text-2xl font-bold text-text-primary sm:text-3xl">Sales Pipeline</h1>
+    <p class="mt-1 text-sm text-text-muted">Track and manage customer leads from inquiry to completion.</p>
+  </div>
+
+  <div class="flex gap-4 border-b border-border">
+    <a href="?tab=leads"
+       class="pb-2 text-sm font-medium transition-colors {% if tab != 'incomplete' %}text-accent border-b-2 border-accent{% else %}text-text-muted hover:text-text-primary{% endif %}">
+      Leads
+    </a>
+    <a href="?tab=incomplete"
+       class="pb-2 text-sm font-medium transition-colors {% if tab == 'incomplete' %}text-accent border-b-2 border-accent{% else %}text-text-muted hover:text-text-primary{% endif %}">
+      Incomplete Designs
+    </a>
+  </div>
+</header>
 
 {% if tab == "incomplete" %}
-{# Incomplete designs table #}
-<div class="blytz-panel overflow-x-auto">
-  <table class="w-full blytz-table md:min-w-[32rem]">
-    <thead>
-      <tr>
-        <th>Design</th>
-        <th>Customer</th>
-        <th>Updated</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for design in incomplete_designs %}
-      <tr>
-        <td data-label="Design">{{ design.title }}</td>
-        <td data-label="Customer">{{ design.owner.get_full_name }}</td>
-        <td data-label="Updated" class="font-mono text-xs">{{ design.updated_at|date:"Y-m-d H:i" }}</td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="3" class="text-center py-12 text-text-subtle" data-label="">No incomplete designs.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+{# ── Incomplete designs ──────────────────────────────────── #}
+<div class="blytz-panel overflow-hidden shadow-lg shadow-red-500/40">
+  <div class="overflow-x-auto">
+    <table class="w-full blytz-table md:min-w-[32rem]">
+      <thead>
+        <tr>
+          <th>Design</th>
+          <th>Customer</th>
+          <th>Last Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for design in incomplete_designs %}
+        <tr>
+          <td data-label="Design" class="font-medium text-text-primary">{{ design.title }}</td>
+          <td data-label="Customer" class="text-text-muted">{{ design.owner.get_full_name }}</td>
+          <td data-label="Updated" class="font-mono text-xs text-text-subtle">{{ design.updated_at|date:"M j, Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="text-center py-12 text-text-subtle" data-label="">
+            No incomplete designs.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 {% else %}
-{# Leads by stage #}
-<div class="space-y-6">
+{# ── Leads by stage ──────────────────────────────────────── #}
+<div class="space-y-4">
+
   {% for stage in stages %}
-  <div class="blytz-panel">
+  <div class="blytz-panel overflow-hidden shadow-lg shadow-red-500/20 border border-red-500/30">
+
+    {# Accent bar — colour per stage #}
+    <div class="h-1 w-full
+      {% if stage.value == 'new_lead' %}bg-info
+      {% elif stage.value == 'order_confirmed' %}bg-text-muted
+      {% elif stage.value == 'design_review' %}bg-coral
+      {% elif stage.value == 'approved' %}bg-accent
+      {% elif stage.value == 'completed' %}bg-success
+      {% elif stage.value == 'lost' %}bg-danger
+      {% else %}bg-text-subtle
+      {% endif %}"></div>
+
     {# Stage header #}
-    <div class="flex items-center justify-between gap-2 p-4 border-b border-border">
+    <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
       <div class="flex items-center gap-2">
-        <div class="w-2 h-2 rounded-full 
+        <span class="h-2 w-2 rounded-full
           {% if stage.value == 'new_lead' %}bg-info
           {% elif stage.value == 'order_confirmed' %}bg-text-muted
           {% elif stage.value == 'design_review' %}bg-coral
@@ -64,58 +84,51 @@
           {% elif stage.value == 'completed' %}bg-success
           {% elif stage.value == 'lost' %}bg-danger
           {% else %}bg-text-subtle
-          {% endif %}"></div>
-        <h2 class="text-sm font-semibold text-text-primary uppercase tracking-wider">{{ stage.label }}</h2>
+          {% endif %}"></span>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-text-primary">{{ stage.label }}</h2>
       </div>
-      <span class="text-xs font-mono text-text-subtle bg-bg-elevated px-2 py-0.5 rounded-full">{{ stage.leads|length }}</span>
+      <span class="rounded-full bg-bg-elevated px-2 py-0.5 font-mono text-xs text-text-subtle">{{ stage.leads|length }}</span>
     </div>
 
+    {# Leads #}
     {% if not stage.leads %}
-      <div class="p-8 text-center">
-        <p class="text-text-subtle text-sm">No leads in this stage</p>
+      <div class="rounded-lg border border-dashed border-border bg-bg-elevated/30 px-3 py-8 text-center">
+        <p class="text-xs text-text-subtle">No leads in this stage</p>
       </div>
     {% else %}
-    <div class="overflow-x-auto">
-      <table class="w-full blytz-table md:min-w-[40rem]">
-        <thead>
-          <tr>
-            <th>Customer</th>
-            <th>Order</th>
-            <th>Created</th>
-            <th>Stage</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for lead in stage.leads %}
-          <tr>
-            <td data-label="Customer">
-              <a href="{% url 'lead_detail' lead.pk %}" class="font-medium text-accent hover:text-accent-hover transition-colors">{{ lead.customer.get_full_name }}</a>
-            </td>
-            <td data-label="Order" class="font-mono">
-              <a href="{% url 'staff_order_detail' lead.order.order_id %}" class="text-text-muted hover:text-text-primary transition-colors">{{ lead.order.order_id }}</a>
-            </td>
-            <td data-label="Created" class="font-mono text-xs">{{ lead.created_at|date:"Y-m-d" }}</td>
-            <td data-label="Stage">
-              <form method="post" action="{% url 'update_lead_stage' lead.pk %}" class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{% url 'sales_pipeline' %}">
-                <select name="stage"
-                        class="w-full rounded-lg border border-border bg-bg-elevated px-2 py-1.5 text-sm text-text-primary focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors sm:w-auto"
-                        onchange="this.form.submit()">
-                  {% for value, label in stage_choices %}
-                  <option value="{{ value }}" {% if lead.stage == value %}selected{% endif %}>{{ label }}</option>
-                  {% endfor %}
-                </select>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+      <div class="divide-y divide-border">
+        {% for lead in stage.leads %}
+        <div class="flex items-center justify-between gap-4 px-4 py-3 transition-colors">
+          <div class="flex-1 min-w-0">
+            <a href="{% url 'lead_detail' lead.pk %}" class="text-sm font-medium text-text-primary">
+              {{ lead.customer.get_full_name }}
+            </a>
+            <div class="flex items-center gap-3 mt-0.5">
+              <a href="{% url 'staff_order_detail' lead.order.order_id %}" class="text-xs font-mono text-text-subtle">
+                {{ lead.order.order_id }}
+              </a>
+              <span class="text-xs text-text-faint">{{ lead.created_at|date:"M j, Y" }}</span>
+            </div>
+          </div>
+          <form method="post" action="{% url 'update_lead_stage' lead.pk %}" class="shrink-0">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'sales_pipeline' %}">
+            <select name="stage"
+                    class="text-xs rounded-md border border-border bg-bg-elevated px-3 py-1.5 text-text-muted focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors cursor-pointer hover:border-border-strong"
+                    onchange="this.form.submit()">
+              {% for value, label in stage_choices %}
+              <option value="{{ value }}" {% if lead.stage == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
     {% endif %}
+
   </div>
   {% endfor %}
+
 </div>
 {% endif %}
 {% endblock %}

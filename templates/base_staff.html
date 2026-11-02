@@ -1,7 +1,99 @@
 {% extends "base.html" %}
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── Background ── */
+  body {
+    background-color: #FFFFFF !important;
+    color: #1a1a1a !important;
+    font-family: 'Poppins', sans-serif !important;
+  }
+
+  /* ── Headings font ── */
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Poppins', sans-serif !important;
+  }
+
+  /* ── Fix all dark panels to light ── */
+  .blytz-panel,
+  .blytz-kpi {
+    background-color: #f9fafb !important;
+    border-color: #e5e7eb !important;
+  }
+
+  /* ── Fix dark surfaces ── */
+  .bg-bg-surface,
+  .bg-bg-elevated,
+  .bg-bg-page{
+    background-color: #f9fafb !important;
+  }
+
+   .bg-bg-sidebar {
+    background-color:   #111111 !important;
+  }
+  /* ── Top bar hover effects ── */
+
+/* Icon buttons (bell + messages) */
+header.fixed.top-0 button:hover {
+  color: #D4AF37 !important;
+}
+
+/* ── Profile button hover ── */
+header.fixed.top-0 > div > div:last-child > button:hover {
+  background-color: #d4af377b !important;
+}
+header.fixed.top-0 > div > div:last-child > button:hover p {
+  color: #000000 !important;
+}
+
+/* Dropdown menu links hover */
+header.fixed.top-0 a:hover {
+  background-color: #f7f1de !important;
+  color: #D4AF37 !important;
+}
+
+  /* ── Fix text colors ── */
+  .text-text-primary {
+    color: #1a1a1a !important;
+  }
+  .text-text-muted {
+    color: #6b7280 !important;
+  }
+  .text-text-subtle {
+    color: #9ca3af !important;
+  }
+
+  /* ── Fix borders ── */
+  .border-border {
+    border-color: #e5e7eb !important;
+  }
+  .border-border-subtle {
+    border-color: #154dbc !important;
+  }
+
+  /* ── Fix input fields ── */
+  .bg-bg-elevated input,
+  input.bg-bg-elevated,
+  select.bg-bg-elevated {
+    background-color: #ffffff !important;
+    border-color: #d1d5db !important;
+    color: #1a1a1a !important;
+  }
+
+  /* ── Fix table rows hover ── */
+  .blytz-table tr:hover td {
+    background-color: #f3f4f6 !important;
+  }
+
+  /* ── Fix sidebar ── */
+  .blytz-sidebar-link:hover {
+    background-color: #1A1A1A !important;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-bg-page">
+<div class="min-h-screen bg-bg-white">
   
   {# Sidebar #}
   {% include "partials/sidebar.html" %}

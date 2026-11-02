@@ -90,24 +90,24 @@
   <table class="w-full blytz-table md:min-w-[48rem]">
     <thead>
       <tr>
-        <th>Order</th>
-        <th>Customer</th>
-        <th>Agreed</th>
-        <th>Paid</th>
-        <th>Balance</th>
-        <th>Status</th>
+        <th scope="col" class="text-text-primary font-semibold">Order</th>
+        <th scope="col" class="text-text-primary font-semibold">Customer</th>
+        <th scope="col" class="text-text-primary font-semibold">Agreed</th>
+        <th scope="col" class="text-text-primary font-semibold">Paid</th>
+        <th scope="col" class="text-text-primary font-semibold">Balance</th>
+        <th scope="col" class="text-text-primary font-semibold">Status</t
       </tr>
     </thead>
     <tbody>
-      {% for order in orders %}
+    {% for order in orders %}
       <tr>
         <td data-label="Order">
-          <a href="{% url 'accounting_detail' order.order_id %}" class="font-mono font-medium text-accent hover:text-accent-hover transition-colors">{{ order.order_id }}</a>
+          <a href="{% url 'accounting_detail' order.order_id %}" class="font-mono font-bold text-black hover:text-accent transition-colors">{{ order.order_id }}</a>
         </td>
-        <td data-label="Customer">{{ order.customer.get_full_name }}</td>
-        <td data-label="Agreed" class="font-mono">{% if order.agreed_total %}₱{{ order.agreed_total }}{% else %}—{% endif %}</td>
-        <td data-label="Paid" class="font-mono text-success">₱{{ order.total_paid }}</td>
-        <td data-label="Balance" class="font-mono {% if order.balance and order.balance > 0 %}text-warning{% endif %}">{% if order.balance is not None %}₱{{ order.balance }}{% else %}—{% endif %}</td>
+        <td data-label="Customer" class="text-gray-800 font-medium">{{ order.customer.get_full_name }}</td>
+        <td data-label="Agreed" class="font-mono text-gray-700">{% if order.agreed_total %}₱{{ order.agreed_total }}{% else %}—{% endif %}</td>
+        <td data-label="Paid" class="font-mono text-gray-700">₱{{ order.total_paid }}</td>
+        <td data-label="Balance" class="font-mono text-gray-700 {% if order.balance and order.balance > 0 %}text-orange-600 font-semibold{% endif %}">{% if order.balance is not None %}₱{{ order.balance }}{% else %}—{% endif %}</td>
         <td data-label="Status">
           <div class="flex flex-col items-start gap-1">
             {% if order.payment_status == "Fully Paid" %}

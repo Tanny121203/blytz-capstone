@@ -237,6 +237,7 @@ class Payment(models.Model):
     )
     amount_claimed = models.DecimalField(max_digits=10, decimal_places=2)
     proof_file = models.FileField(upload_to="payment_proofs/", blank=True)
+    reference_number = models.CharField(max_length=100, blank=True)
     is_manual_adjustment = models.BooleanField(default=False)
     note = models.CharField(max_length=255, blank=True)
     status = models.CharField(

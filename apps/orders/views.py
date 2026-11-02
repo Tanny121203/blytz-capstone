@@ -139,6 +139,7 @@ def order_detail(request, order_id):
                         channel=payment_form.cleaned_data["channel"],
                         amount_claimed=payment_form.cleaned_data["amount_claimed"],
                         proof_file=payment_form.cleaned_data["proof_file"],
+                        reference_number=payment_form.cleaned_data.get("reference_number", ""),
                         status=Payment.Status.PENDING,
                     )
             except IntegrityError:

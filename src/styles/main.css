@@ -12,6 +12,7 @@
     "Segoe UI Emoji";
 
   /* ── Backgrounds ── */
+    --color-bg-staff: #FFFFFF;
   --color-bg-page: #000000;
   --color-bg-surface: #0B0B0B;
   --color-bg-elevated: #161616;
