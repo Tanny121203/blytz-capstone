@@ -377,6 +377,7 @@ border-radius: 14px;
 <script src="{% static 'js/editor_contract.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/editor_chrome.js' %}?v=stage-h1"></script>
 <script src="{% static 'js/ai_chat.js' %}?v=stage-h1" defer></script>
+<script src="{% static 'js/editor_approval_form.js' %}?v=stage-h1" defer></script>
 <script src="{% static 'js/payment_details.js' %}?v=stage-h1" defer></script>
 <script src="{% static 'js/editor_page.js' %}?v=stage-h1" defer></script>
 <script src="{% static 'js/editor_title_sync.js' %}?v=stage-h1" defer></script>
@@ -1063,6 +1064,126 @@ border-radius: 14px;
     </div>
   </div>
 </div>
+{% comment %}Approval / Terms modal{% endcomment %}
+<div id="approval-modal"
+     class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="approval-modal-title"
+     data-modal>
+  <div class="absolute inset-0 bg-ink/50" data-modal-close tabindex="-1"></div>
+  <div class="relative z-10 flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-lg border border-border bg-canvas shadow-lg">
+
+    {# Header #}
+    <div class="flex items-start justify-between gap-4 border-b border-border px-4 py-3 sm:px-6">
+      <div>
+        <h2 id="approval-modal-title" class="font-display text-lg text-ink">Order Approval &amp; Terms</h2>
+        <p class="mt-0.5 text-xs text-ink-muted">Please review and accept before proceeding to payment.</p>
+      </div>
+      <button type="button"
+              class="rounded-md p-1.5 text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              data-modal-close
+              aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+
+    {# Body #}
+    <div class="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+
+      <div class="rounded-md border border-danger/40 bg-danger/5 px-4 py-3">
+        <p class="text-sm font-semibold text-danger">Important Notice</p>
+        <p class="mt-1 text-sm text-ink-muted">
+          This approval is a formal acknowledgement of the conditions of sale. Please read the terms below carefully before proceeding.
+        </p>
+      </div>
+
+      {# Terms #}
+      <div class="divide-y divide-border rounded-md border border-border bg-surface">
+        <div class="p-4">
+          <h3 class="text-sm font-semibold text-ink">1. Design Reference and Final Output</h3>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-muted">
+            Any design, mockup, or artwork included with this order is provided as a <strong class="font-medium text-ink">reference only</strong>. The final output may vary slightly in color, scale, material, and finish due to production tolerances. If you require a more specific or customized design, you must discuss those requirements with our team <strong class="font-medium text-ink">before approving this order</strong>. Once approved, the design is treated as final.
+          </p>
+        </div>
+
+        <div class="p-4">
+          <h3 class="text-sm font-semibold text-ink">2. Design Changes After Approval</h3>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-muted">
+            Any changes to the design, specifications, or order details must be requested before approval. Requests made after approval may incur additional charges and may delay production. Approved orders are considered final.
+          </p>
+        </div>
+
+        <div class="p-4">
+          <h3 class="text-sm font-semibold text-ink">3. No Refunds or Cancellations</h3>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-muted">
+            Once your order is submitted and payment is made, it cannot be refunded or cancelled. All sales are final.
+          </p>
+        </div>
+
+        <div class="p-4">
+          <h3 class="text-sm font-semibold text-ink">4. Downpayment Requirement</h3>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-muted">
+            A downpayment must be made before your order can proceed. The remaining balance may be settled at a later date, subject to the agreed payment terms.
+          </p>
+        </div>
+
+        <div class="p-4">
+          <h3 class="text-sm font-semibold text-ink">5. Payment Verification</h3>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-muted">
+            After payment, you must upload a clear screenshot or photo of your payment confirmation (GCash, Maya, or bank transfer) and provide the reference or transaction number. Orders cannot be verified or processed without valid proof of payment.
+          </p>
+        </div>
+
+        <div class="p-4">
+          <h3 class="text-sm font-semibold text-ink">6. Payment Window</h3>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-muted">
+            You have {{ payment_window_minutes }} minutes to complete payment after submission. If payment is not completed within this window, your order may be cancelled.
+          </p>
+        </div>
+
+        <div class="p-4">
+          <h3 class="text-sm font-semibold text-ink">7. Order Processing</h3>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-muted">
+            Production begins only after payment has been verified. Estimated timelines are provided for guidance and may vary depending on order complexity and volume.
+          </p>
+        </div>
+      </div>
+
+      {# Acknowledgement #}
+      <div class="rounded-md border border-accent/30 bg-accent-soft/30 px-4 py-3">
+        <label class="flex cursor-pointer items-start gap-3">
+          <input type="checkbox"
+                 id="approval-checkbox"
+                 class="mt-0.5 h-4 w-4 shrink-0 rounded border-border bg-canvas text-accent focus:ring-accent">
+          <span class="text-sm leading-relaxed text-ink">
+            I have read and understood these terms. I acknowledge that the submitted design is a
+            <strong class="font-semibold">reference only</strong>, and that any specific design requirements must be raised
+            before approval. I agree that my order is
+            <strong class="font-semibold">non-refundable and non-cancellable</strong>, and I authorize
+            Blytz to proceed with production upon verification of payment.
+          </span>
+        </label>
+      </div>
+
+    </div>
+
+    {# Footer #}
+    <div class="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3 sm:px-6">
+      <button type="button"
+              id="approval-decline-btn"
+              class="inline-flex min-h-11 items-center rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-medium text-ink hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+        Decline
+      </button>
+      <button type="button"
+              id="approval-accept-btn"
+              disabled
+              class="inline-flex min-h-11 items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40">
+        Accept &amp; Proceed to Payment
+      </button>
+    </div>
+  </div>
+</div>
 
 {% comment %}Payment modal{% endcomment %}
 <div id="payment-modal"
@@ -1151,15 +1272,15 @@ border-radius: 14px;
           <p class="mt-1 text-sm text-danger" data-payment-client-error role="alert"></p>
         </div>
         <div>
-          <label for="editor-payment-ref" class="mb-1.5 block text-sm font-medium text-ink">Reference Number</label>
-          <input type="text"
-                id="editor-payment-ref"
-                name="reference_number"
-                maxlength="100"
-                class="block w-full min-h-11 rounded-md border border-border bg-canvas px-3 py-2.5 text-base text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-                placeholder="Enter reference / transaction number">
-          <p class="mt-1.5 text-xs text-ink-subtle">The reference number from your GCash, Maya, or bank transfer</p>
-        </div>
+        <label for="editor-payment-ref" class="mb-1.5 block text-sm font-medium text-ink">Reference Number</label>
+        <input type="text"
+              id="editor-payment-ref"
+              name="reference_number"
+              maxlength="100"
+              class="block w-full min-h-11 rounded-md border border-border bg-canvas px-3 py-2.5 text-base text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              placeholder="Enter reference / transaction number">
+        <p class="mt-1.5 text-xs text-ink-subtle">The reference number from your GCash, Maya, or bank transfer</p>
+      </div>
       </div>
 
       <div class="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3 sm:px-6">
