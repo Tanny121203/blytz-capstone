@@ -20,6 +20,8 @@ from .ai_suggest import (
     AI_BOUNDS_MAX_RETRIES,
     AISuggestValidationError,
     check_rate_limit,
+    detect_scope,
+    finalize_scope_result,
     record_rate_limit_success,
     should_generate_dual_side,
     validate_two_candidates,
@@ -454,6 +456,8 @@ def design_ai_suggest(request, pk):
         else []
     )
 
+    scope = detect_scope(parsed["message"])
+
     result = None
     suggestions = None
     last_validation_error = None
@@ -472,15 +476,40 @@ def design_ai_suggest(request, pk):
                 other_side_print_areas=other_areas,
                 dual_side=dual_side,
                 repair_hint=repair_hint,
+                scope=scope,
             )
-            suggestions = validate_two_candidates(
-                result["suggestions"],
-                garment_template=garment,
-                active_side=active_side,
-                prior_canvas=parsed["canvas_json"],
-                message=parsed["message"],
-                dual_side=dual_side,
-            )
+            try:
+                result = finalize_scope_result(
+                    parsed["message"],
+                    parsed["canvas_json"],
+                    result,
+                    garment_template=garment,
+                    active_side=active_side,
+                    print_areas=print_areas,
+                )
+            except AIDesignError as exc:
+                logger.info(
+                    "ai_suggest scope_violation user_id=%s design_id=%s code=%s",
+                    request.user.pk,
+                    pk,
+                    exc.code,
+                )
+                return JsonResponse(
+                    {"ok": False, "error": exc.message, "code": exc.code},
+                    status=503,
+                )
+
+            if scope in ("color", "text"):
+                suggestions = result["suggestions"]
+            else:
+                suggestions = validate_two_candidates(
+                    result["suggestions"],
+                    garment_template=garment,
+                    active_side=active_side,
+                    prior_canvas=parsed["canvas_json"],
+                    message=parsed["message"],
+                    dual_side=dual_side,
+                )
             last_validation_error = None
             break
         except AIDesignError as exc:
@@ -491,7 +520,11 @@ def design_ai_suggest(request, pk):
                 exc.code,
                 attempt + 1,
             )
-            status = 503 if exc.code == "ai_unavailable" else 400
+            status = (
+                503
+                if exc.code in ("ai_unavailable", "ai_timeout", "ai_upstream")
+                else 400
+            )
             return JsonResponse(
                 {"ok": False, "error": exc.message, "code": exc.code},
                 status=status,

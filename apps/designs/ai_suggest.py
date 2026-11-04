@@ -6,6 +6,7 @@ Does not call Gemini; does not mutate Design rows.
 
 from __future__ import annotations
 
+import copy
 import json
 import re
 import time
@@ -18,6 +19,7 @@ from apps.designs.canvas_safety import CanvasSafetyError, validate_v1_envelope
 from apps.designs.forms import MAX_CANVAS_JSON_BYTES
 from apps.designs.print_area_check import artwork_overflows_print_areas
 from apps.designs.print_areas_catalog import get_print_areas, primary_print_areas
+from services.ai_design import AIDesignError
 
 # Matches client BlytzEditor.validateCanvasJSON AI rules.
 LOGICAL_SIZE = 800
@@ -137,6 +139,213 @@ def merge_preserve_images(
     canvas["objects"] = objs
     envelope["canvas"] = canvas
     return envelope
+
+
+REDESIGN_CUES = (
+    "redesign",
+    "start over",
+    "from scratch",
+    "completely",
+    "new design",
+    "replace",
+    "add ",
+    "remove ",
+    "delete ",
+    "bigger",
+    "smaller",
+    "move ",
+    "rotate",
+    "resize",
+    "scale",
+    "make it bigger",
+    "make it smaller",
+)
+
+COLOR_CUES = (
+    "color",
+    "colour",
+    "colors",
+    "colours",
+    "palette",
+    "shade",
+    "tint",
+    "red",
+    "blue",
+    "green",
+    "yellow",
+    "orange",
+    "purple",
+    "pink",
+    "black",
+    "white",
+    "grey",
+    "gray",
+    "cyan",
+    "magenta",
+    "brown",
+    "gold",
+    "silver",
+    "teal",
+    "navy",
+    "maroon",
+    "olive",
+    "lime",
+    "violet",
+    "indigo",
+)
+
+TEXT_CUES = (
+    "change the text", "change text", "update the text", "update text",
+    "rename the text", "rename text",
+    "make it say", "make the text say", "make text say",
+    "the text should be", "the text should say", "text should be", "text should say",
+    "change the wording", "change wording",
+    "replace the text", "replace text",
+)
+
+TEXT_PATCHABLE_PROPERTIES = frozenset({
+    "text", "fontSize", "fontFamily", "fontWeight", "fontStyle", "fill", "stroke",
+})
+TEXT_OBJECT_TYPES = frozenset({"text", "IText", "textbox"})
+
+_HEX_COLOR_RE = re.compile(r"#[0-9a-f]{3,8}\b", re.I)
+
+
+def detect_scope(message: str) -> str:
+    msg = (message or "").lower()
+    for cue in REDESIGN_CUES:
+        if cue in msg:
+            return "redesign"
+    has_text = any(cue in msg for cue in TEXT_CUES)
+    has_color = any(cue in msg for cue in COLOR_CUES) or bool(_HEX_COLOR_RE.search(msg))
+    if has_text and has_color:
+        return "redesign"
+    if has_text:
+        return "text"
+    if has_color:
+        return "color"
+    return "redesign"
+
+
+def apply_patches(canvas_json: dict, patches: list[dict]) -> dict:
+    copied = copy.deepcopy(canvas_json)
+    objs = copied.get("canvas", {}).get("objects", [])
+    obj_map = {str(o.get("blytzId")): o for o in objs if o.get("blytzId") is not None}
+    for p in patches or []:
+        bid = str(p.get("blytzId"))
+        if bid not in obj_map:
+            raise ValueError(f"unknown blytzId: {bid}")
+        target = obj_map[bid]
+        target[p["property"]] = p["value"]
+    return copied
+
+
+def validate_preservation(scope: str, original: dict, patched: dict, patches: list[dict]) -> None:
+    if scope not in ("color", "text"):
+        raise NotImplementedError(f"Unsupported scope for validation: {scope}")
+    orig_objs = original.get("canvas", {}).get("objects", [])
+    patched_objs = patched.get("canvas", {}).get("objects", [])
+
+    orig_ids = {str(o.get("blytzId")) for o in orig_objs if o.get("blytzId") is not None}
+    patched_ids = {str(o.get("blytzId")) for o in patched_objs if o.get("blytzId") is not None}
+
+    if orig_ids != patched_ids:
+        raise ValueError("preservation: object set changed")
+
+    orig_map = {str(o.get("blytzId")): o for o in orig_objs if o.get("blytzId") is not None}
+    patched_map = {str(o.get("blytzId")): o for o in patched_objs if o.get("blytzId") is not None}
+
+    if scope == "color":
+        structural_props = ("left", "top", "width", "height", "angle", "scaleX", "scaleY", "type", "text")
+        for bid, p_obj in patched_map.items():
+            o_obj = orig_map[bid]
+            for prop in structural_props:
+                if o_obj.get(prop) != p_obj.get(prop):
+                    raise ValueError(f"preservation: structural property changed for blytzId={bid}")
+
+            all_keys = set(o_obj.keys()) | set(p_obj.keys())
+            diffs = [k for k in all_keys if o_obj.get(k) != p_obj.get(k)]
+            for d in diffs:
+                if d not in ("fill", "stroke"):
+                    raise ValueError(f"preservation: non-color property changed for blytzId={bid}")
+
+        for p in patches or []:
+            bid = str(p.get("blytzId"))
+            if bid not in orig_map:
+                raise ValueError(f"patch references unknown blytzId: {bid}")
+
+    elif scope == "text":
+        structural_props = ("left", "top", "width", "height", "angle", "scaleX", "scaleY")
+        targeted_ids = {str(p.get("blytzId")) for p in (patches or [])}
+
+        for bid, p_obj in patched_map.items():
+            o_obj = orig_map[bid]
+            if o_obj.get("type") != p_obj.get("type"):
+                raise ValueError(f"preservation: type changed for blytzId={bid}")
+
+            for prop in structural_props:
+                if o_obj.get(prop) != p_obj.get(prop):
+                    raise ValueError(f"preservation: structural property changed for blytzId={bid}")
+
+            if bid in targeted_ids:
+                if str(o_obj.get("type", "")) not in TEXT_OBJECT_TYPES:
+                    raise ValueError(f"preservation: non-text object targeted for blytzId={bid}")
+
+            all_keys = set(o_obj.keys()) | set(p_obj.keys())
+            diffs = [k for k in all_keys if o_obj.get(k) != p_obj.get(k)]
+
+            if bid not in targeted_ids:
+                if diffs:
+                    raise ValueError(f"preservation: untargeted object changed for blytzId={bid}")
+            else:
+                for d in diffs:
+                    if d not in TEXT_PATCHABLE_PROPERTIES:
+                        raise ValueError(f"preservation: disallowed property changed for blytzId={bid}")
+
+        for p in patches or []:
+            bid = str(p.get("blytzId"))
+            if bid not in orig_map:
+                raise ValueError(f"patch references unknown blytzId: {bid}")
+
+
+def finalize_scope_result(
+    message: str, original_canvas_json: dict, raw_result: dict, *,
+    garment_template: str = "tee", active_side: str = "front",
+    print_areas: list | None = None,
+) -> dict:
+    scope = raw_result.get("scope")
+    if scope == "redesign":
+        return raw_result
+    if scope in ("color", "text"):
+        candidates = raw_result.get("suggestions", [])
+        for c in candidates:
+            try:
+                patched = apply_patches(original_canvas_json, c.get("patches", []))
+                validate_preservation(scope, original_canvas_json, patched, c.get("patches", []))
+                env = {
+                    "schema_version": 1,
+                    "width": 800,
+                    "height": 800,
+                    "canvas": patched["canvas"],
+                }
+                validated = validate_ai_candidate_envelope(env)
+                assert_envelope_in_print_bounds(
+                    validated,
+                    garment_template=garment_template,
+                    side=active_side,
+                )
+                c["canvasJSON"] = validated
+                if "patches" in c:
+                    del c["patches"]
+            except (ValueError, KeyError, TypeError, NotImplementedError, AISuggestValidationError) as exc:
+                raise AIDesignError(
+                    code="ai_scope_violation",
+                    message="AI returned a design that did not preserve the original. Please retry.",
+                ) from exc
+
+        return raw_result
+
+    return raw_result
 
 
 def fabric_object_aabb(obj: Any) -> dict[str, float] | None:

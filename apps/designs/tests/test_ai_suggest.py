@@ -242,7 +242,7 @@ class DesignAISuggestTests(TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["code"], "ai_unavailable")
 
-    @override_settings(GEMINI_API_KEY="")
+    @override_settings(AI_DESIGN_PROVIDER="gemini", GEMINI_API_KEY="")
     def test_missing_key_returns_503_without_calling_gemini(self):
         with patch("apps.designs.views.suggest_design_candidates") as mock_suggest:
             response = self._post()
@@ -441,6 +441,7 @@ class AISuggestValidationUnitTests(TestCase):
 
 
 @override_settings(
+    AI_DESIGN_PROVIDER="gemini",
     GEMINI_API_KEY="test-gemini-key-not-real",
     GEMINI_MODEL="gemini-3.5-flash-lite",
 )
@@ -508,3 +509,938 @@ class AISuggestGeminiClientUnitTests(TestCase):
         self.assertIn("/models/gemini-3.5-flash-lite:generateContent", req.full_url)
         self.assertNotIn("gemini-2.5-flash", req.full_url)
         self.assertNotIn("gemini-2.0-flash", req.full_url)
+
+
+@override_settings(
+    AI_DESIGN_PROVIDER="mistral",
+    MISTRAL_API_KEY="test-mistral-key-not-real",
+    MISTRAL_MODEL="mistral-small-latest",
+)
+class AISuggestMistralClientUnitTests(TestCase):
+    """Mock urllib — no live Mistral calls."""
+
+    def test_mistral_request_success_and_model(self):
+        from services.ai_design import suggest_design_candidates
+
+        mistral_payload = {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "message": "Mistral options ready.",
+                                "candidates": [
+                                    {
+                                        "id": "a",
+                                        "label": "Option A",
+                                        "description": "Desc A",
+                                        "canvasJSON": VALID_CANDIDATE_A,
+                                    },
+                                    {
+                                        "id": "b",
+                                        "label": "Option B",
+                                        "description": "Desc B",
+                                        "canvasJSON": VALID_CANDIDATE_B,
+                                    },
+                                ],
+                            }
+                        )
+                    }
+                }
+            ],
+            "usage": {"prompt_tokens": 12, "completion_tokens": 25},
+        }
+        raw = json.dumps(mistral_payload).encode("utf-8")
+
+        class _Resp:
+            status = 200
+
+            def read(self):
+                return raw
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        with patch("services.ai_design.urllib.request.urlopen", return_value=_Resp()) as mock_open:
+            result = suggest_design_candidates(
+                message="Minimalist monogram",
+                canvas_json={},
+                active_side="front",
+            )
+
+        self.assertEqual(len(result["suggestions"]), 2)
+        self.assertEqual(result["message"], "Mistral options ready.")
+        req = mock_open.call_args[0][0]
+        self.assertEqual(req.full_url, "https://api.mistral.ai/v1/chat/completions")
+        body_sent = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(body_sent["model"], "mistral-small-latest")
+        self.assertEqual(body_sent["response_format"]["type"], "json_object")
+        self.assertNotIn("include_reasoning", body_sent)
+
+    @override_settings(AI_DESIGN_PROVIDER="mistral", MISTRAL_API_KEY="")
+    def test_mistral_missing_key_returns_unavailable(self):
+        from services.ai_design import suggest_design_candidates, AIDesignError
+
+        with self.assertRaises(AIDesignError) as ctx:
+            suggest_design_candidates(
+                message="Test",
+                canvas_json={},
+                active_side="front",
+            )
+        self.assertEqual(ctx.exception.code, "ai_unavailable")
+
+
+@override_settings(
+    AI_DESIGN_PROVIDER="cerebras",
+    CEREBRAS_API_KEY="test-cerebras-key-not-real",
+    CEREBRAS_MODEL="llama3.1-8b",
+)
+class AISuggestCerebrasClientUnitTests(TestCase):
+    """Mock urllib — no live Cerebras calls."""
+
+    def test_cerebras_request_success_and_model(self):
+        from services.ai_design import suggest_design_candidates
+
+        cerebras_payload = {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "message": "Cerebras options ready.",
+                                "candidates": [
+                                    {
+                                        "id": "a",
+                                        "label": "Option A",
+                                        "description": "Desc A",
+                                        "canvasJSON": VALID_CANDIDATE_A,
+                                    },
+                                    {
+                                        "id": "b",
+                                        "label": "Option B",
+                                        "description": "Desc B",
+                                        "canvasJSON": VALID_CANDIDATE_B,
+                                    },
+                                ],
+                            }
+                        )
+                    }
+                }
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 20},
+        }
+        raw = json.dumps(cerebras_payload).encode("utf-8")
+
+        class _Resp:
+            status = 200
+
+            def read(self):
+                return raw
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        with patch("services.ai_design.urllib.request.urlopen", return_value=_Resp()) as mock_open:
+            result = suggest_design_candidates(
+                message="Fast vector design",
+                canvas_json={},
+                active_side="front",
+            )
+
+        self.assertEqual(len(result["suggestions"]), 2)
+        self.assertEqual(result["message"], "Cerebras options ready.")
+        req = mock_open.call_args[0][0]
+        self.assertEqual(req.full_url, "https://api.cerebras.ai/v1/chat/completions")
+        body_sent = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(body_sent["model"], "llama3.1-8b")
+        self.assertEqual(body_sent["response_format"]["type"], "json_object")
+
+    @override_settings(AI_DESIGN_PROVIDER="cerebras", CEREBRAS_API_KEY="")
+    def test_cerebras_missing_key_returns_unavailable(self):
+        from services.ai_design import suggest_design_candidates, AIDesignError
+
+        with self.assertRaises(AIDesignError) as ctx:
+            suggest_design_candidates(
+                message="Test",
+                canvas_json={},
+                active_side="front",
+            )
+        self.assertEqual(ctx.exception.code, "ai_unavailable")
+
+    @override_settings(
+        AI_DESIGN_PROVIDER="cerebras",
+        CEREBRAS_API_KEY="test-cerebras-key-not-real",
+        CEREBRAS_MODEL="qwen-3.8-27b",
+        CEREBRAS_MAX_TOKENS=2048,
+    )
+    def test_cerebras_max_tokens_and_length_truncation_logging(self):
+        from services.ai_design import suggest_design_candidates, AIDesignError
+
+        cerebras_payload = {
+            "choices": [
+                {
+                    "message": {"content": ""},
+                    "finish_reason": "length",
+                }
+            ],
+            "usage": {"prompt_tokens": 150, "completion_tokens": 2048},
+        }
+        raw = json.dumps(cerebras_payload).encode("utf-8")
+
+        class _Resp:
+            status = 200
+
+            def read(self):
+                return raw
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        with patch("services.ai_design.urllib.request.urlopen", return_value=_Resp()) as mock_open, \
+             patch("services.ai_design.logger.warning") as mock_log:
+            with self.assertRaises(AIDesignError) as ctx:
+                suggest_design_candidates(
+                    message="Dense vector design",
+                    canvas_json={},
+                    active_side="front",
+                )
+            self.assertEqual(ctx.exception.code, "ai_length")
+            
+        req = mock_open.call_args[0][0]
+        body_sent = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(body_sent["max_tokens"], 2048)
+        self.assertEqual(body_sent["model"], "qwen-3.8-27b")
+        mock_log.assert_called_once()
+        log_args = mock_log.call_args[0]
+        self.assertIn("cerebras_length_exceeded", log_args[0])
+        self.assertEqual(log_args[1], "qwen-3.8-27b")
+        self.assertEqual(log_args[2], 150)
+        self.assertEqual(log_args[3], 2048)
+@override_settings(
+    AI_DESIGN_PROVIDER="groq",
+    GROQ_API_KEY="test-groq-key-not-real",
+    GROQ_MODEL="llama-3.3-70b-versatile",
+)
+class AISuggestGroqClientUnitTests(TestCase):
+    """Mock urllib — no live Groq calls."""
+
+    def test_groq_request_success_and_model(self):
+        from services.ai_design import suggest_design_candidates
+
+        groq_payload = {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "message": "Groq options ready.",
+                                "candidates": [
+                                    {
+                                        "id": "a",
+                                        "label": "Option A",
+                                        "description": "Desc A",
+                                        "canvasJSON": VALID_CANDIDATE_A,
+                                    },
+                                    {
+                                        "id": "b",
+                                        "label": "Option B",
+                                        "description": "Desc B",
+                                        "canvasJSON": VALID_CANDIDATE_B,
+                                    },
+                                ],
+                            }
+                        )
+                    }
+                }
+            ],
+            "usage": {"prompt_tokens": 15, "completion_tokens": 30},
+        }
+        raw = json.dumps(groq_payload).encode("utf-8")
+
+        class _Resp:
+            status = 200
+
+            def read(self):
+                return raw
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        with patch("services.ai_design.urllib.request.urlopen", return_value=_Resp()) as mock_open:
+            result = suggest_design_candidates(
+                message="Tribal festival design on hoodie",
+                canvas_json={},
+                active_side="front",
+            )
+
+        self.assertEqual(len(result["suggestions"]), 2)
+        self.assertEqual(result["message"], "Groq options ready.")
+        req = mock_open.call_args[0][0]
+        self.assertEqual(req.full_url, "https://api.groq.com/openai/v1/chat/completions")
+        self.assertEqual(req.get_header("User-agent"), "BlytzClothing/1.0")
+        body_sent = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(body_sent["model"], "llama-3.3-70b-versatile")
+        self.assertEqual(body_sent["response_format"]["type"], "json_schema")
+        self.assertEqual(body_sent["response_format"]["json_schema"]["strict"], True)
+        self.assertEqual(body_sent["include_reasoning"], False)
+        self.assertNotIn("reasoning_format", body_sent)
+
+    @override_settings(AI_DESIGN_PROVIDER="groq", GROQ_API_KEY="")
+    def test_groq_missing_key_returns_unavailable(self):
+        from services.ai_design import suggest_design_candidates, AIDesignError
+
+        with self.assertRaises(AIDesignError) as ctx:
+            suggest_design_candidates(
+                message="Test",
+                canvas_json={},
+                active_side="front",
+            )
+        self.assertEqual(ctx.exception.code, "ai_unavailable")
+
+    def test_http_401_authentication_failure(self):
+        from services.ai_design import suggest_design_candidates, AIDesignError
+        import urllib.error
+        import io
+
+        err_payload = json.dumps({
+            "error": {"message": "Invalid API Key", "type": "auth_error", "code": "invalid_api_key"}
+        }).encode("utf-8")
+
+        http_exc = urllib.error.HTTPError(
+            url="https://api.groq.com/openai/v1/chat/completions",
+            code=401,
+            msg="Unauthorized",
+            hdrs={},
+            fp=io.BytesIO(err_payload),
+        )
+
+        with patch("services.ai_design.urllib.request.urlopen", side_effect=http_exc):
+            with self.assertRaises(AIDesignError) as ctx:
+                suggest_design_candidates(message="Test 401", canvas_json={}, active_side="front")
+            self.assertEqual(ctx.exception.code, "ai_unavailable")
+
+    def test_http_403_model_permission_restriction(self):
+        from services.ai_design import suggest_design_candidates, AIDesignError
+        import urllib.error
+        import io
+
+        err_payload = json.dumps({
+            "error": {"message": "Model not found or access denied", "type": "invalid_request_error", "code": "model_not_found"}
+        }).encode("utf-8")
+
+        http_exc = urllib.error.HTTPError(
+            url="https://api.groq.com/openai/v1/chat/completions",
+            code=403,
+            msg="Forbidden",
+            hdrs={},
+            fp=io.BytesIO(err_payload),
+        )
+
+        with patch("services.ai_design.urllib.request.urlopen", side_effect=http_exc):
+            with self.assertRaises(AIDesignError) as ctx:
+                suggest_design_candidates(message="Test 403 model", canvas_json={}, active_side="front")
+            self.assertEqual(ctx.exception.code, "ai_model_permission")
+
+    def test_http_403_general_forbidden(self):
+        from services.ai_design import suggest_design_candidates, AIDesignError
+        import urllib.error
+        import io
+
+        err_payload = json.dumps({
+            "error": {"message": "Forbidden access", "type": "permission_error", "code": "forbidden"}
+        }).encode("utf-8")
+
+        http_exc = urllib.error.HTTPError(
+            url="https://api.groq.com/openai/v1/chat/completions",
+            code=403,
+            msg="Forbidden",
+            hdrs={},
+            fp=io.BytesIO(err_payload),
+        )
+
+        with patch("services.ai_design.urllib.request.urlopen", side_effect=http_exc):
+            with self.assertRaises(AIDesignError) as ctx:
+                suggest_design_candidates(message="Test 403 general", canvas_json={}, active_side="front")
+            self.assertEqual(ctx.exception.code, "ai_forbidden")
+
+    def test_http_403_org_level_restriction(self):
+        from services.ai_design import suggest_design_candidates, AIDesignError
+        import urllib.error
+        import io
+
+        err_payload = json.dumps({
+            "error": {
+                "message": "This model has been disabled for your organization.",
+                "type": "invalid_request_error",
+                "code": "organization_restricted"
+            }
+        }).encode("utf-8")
+
+        http_exc = urllib.error.HTTPError(
+            url="https://api.groq.com/openai/v1/chat/completions",
+            code=403,
+            msg="Forbidden",
+            hdrs={},
+            fp=io.BytesIO(err_payload),
+        )
+
+        with patch("services.ai_design.urllib.request.urlopen", side_effect=http_exc):
+            with self.assertRaises(AIDesignError) as ctx:
+                suggest_design_candidates(message="Test 403 org", canvas_json={}, active_side="front")
+            self.assertEqual(ctx.exception.code, "ai_model_permission")
+            self.assertIn("disabled for your organization", ctx.exception.message)
+
+    def test_http_403_project_level_restriction(self):
+        from services.ai_design import suggest_design_candidates, AIDesignError
+        import urllib.error
+        import io
+
+        err_payload = json.dumps({
+            "error": {
+                "message": "Model access is not enabled for this project.",
+                "type": "invalid_request_error",
+                "code": "project_restricted"
+            }
+        }).encode("utf-8")
+
+        http_exc = urllib.error.HTTPError(
+            url="https://api.groq.com/openai/v1/chat/completions",
+            code=403,
+            msg="Forbidden",
+            hdrs={},
+            fp=io.BytesIO(err_payload),
+        )
+
+        with patch("services.ai_design.urllib.request.urlopen", side_effect=http_exc):
+            with self.assertRaises(AIDesignError) as ctx:
+                suggest_design_candidates(message="Test 403 project", canvas_json={}, active_side="front")
+            self.assertEqual(ctx.exception.code, "ai_model_permission")
+            self.assertIn("not enabled for this project", ctx.exception.message)
+
+
+@override_settings(GEMINI_API_KEY="test-key")
+class AISuggestScopeStage1Tests(TestCase):
+    def setUp(self):
+        cache.clear()
+        from django.contrib.auth import get_user_model
+        from apps.designs.models import Design
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            email="scope-test@example.com",
+            password="test-pass-123",
+            role=User.Role.CUSTOMER,
+        )
+        self.client.force_login(self.user)
+        self.design = Design.objects.create(
+            owner=self.user,
+            title="Test Design",
+            garment_template="tee",
+            canvas_json={
+                "schema_version": 1,
+                "width": 800,
+                "height": 800,
+                "canvas": {
+                    "version": "6.6.1",
+                    "objects": [
+                        {"type": "Rect", "blytzId": "obj-1", "left": 250, "top": 250, "width": 100, "height": 100, "fill": "#000"},
+                        {"type": "IText", "blytzId": "obj-2", "left": 250, "top": 360, "width": 200, "height": 36, "text": "Hello", "fill": "#111"},
+                        {"type": "Circle", "blytzId": "obj-3", "left": 250, "top": 410, "width": 50, "height": 50, "fill": "#222"},
+                    ]
+                }
+            }
+        )
+        self.url = reverse("design_ai_suggest", args=[self.design.pk])
+
+    def test_detect_scope_color_prompt_returns_color(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("change the colors to red, white, black, and yellow"), "color")
+
+    def test_detect_scope_redesign_prompt_returns_redesign(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("completely redesign this hoodie"), "redesign")
+
+    def test_detect_scope_ambiguous_returns_redesign(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("make it nicer"), "redesign")
+
+    def test_detect_scope_color_plus_add_returns_redesign(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("change colors and add a star"), "redesign")
+
+    def test_detect_scope_hex_returns_color(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("use #ff0000 for everything"), "color")
+
+    def test_apply_patches_changes_only_specified(self):
+        from apps.designs.ai_suggest import apply_patches
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}]
+        patched = apply_patches(canvas, patches)
+        
+        self.assertEqual(patched["canvas"]["objects"][0]["fill"], "#ff0000")
+        import copy
+        orig_copy = copy.deepcopy(canvas)
+        patched_copy = copy.deepcopy(patched)
+        for o_orig, o_patch in zip(orig_copy["canvas"]["objects"], patched_copy["canvas"]["objects"]):
+            o_patch.pop("fill", None)
+            o_orig.pop("fill", None)
+            self.assertEqual(o_orig, o_patch)
+
+    def test_apply_patches_raises_on_unknown_id(self):
+        from apps.designs.ai_suggest import apply_patches
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "missing", "property": "fill", "value": "#ff0000"}]
+        with self.assertRaises(ValueError):
+            apply_patches(canvas, patches)
+
+    def test_validate_preservation_passes_clean_patch(self):
+        from apps.designs.ai_suggest import apply_patches, validate_preservation
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}]
+        patched = apply_patches(canvas, patches)
+        res = validate_preservation("color", canvas, patched, patches)
+        self.assertIsNone(res)
+
+    def test_validate_preservation_rejects_added_object(self):
+        from apps.designs.ai_suggest import apply_patches, validate_preservation
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}]
+        patched = apply_patches(canvas, patches)
+        patched["canvas"]["objects"].append({"type": "Rect", "blytzId": "obj-4"})
+        with self.assertRaises(ValueError):
+            validate_preservation("color", canvas, patched, patches)
+
+    def test_validate_preservation_rejects_removed_object(self):
+        from apps.designs.ai_suggest import apply_patches, validate_preservation
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}]
+        patched = apply_patches(canvas, patches)
+        patched["canvas"]["objects"].pop()
+        with self.assertRaises(ValueError):
+            validate_preservation("color", canvas, patched, patches)
+
+    def test_validate_preservation_rejects_non_whitelisted_property(self):
+        from apps.designs.ai_suggest import apply_patches, validate_preservation
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "obj-1", "property": "left", "value": 999}]
+        patched = apply_patches(canvas, patches)
+        with self.assertRaises(ValueError):
+            validate_preservation("color", canvas, patched, patches)
+
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_scope_redesign_default_passthrough(self, mock_suggest):
+        mock_suggest.return_value = {
+            "scope": "redesign",
+            "message": "Here are two redesign candidates.",
+            "suggestions": [
+                {
+                    "id": "candidate-a",
+                    "label": "Option 1",
+                    "description": "Desc 1",
+                    "canvasJSON": self.design.canvas_json,
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Option 2",
+                    "description": "Desc 2",
+                    "canvasJSON": self.design.canvas_json,
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({"message": "completely redesign this hoodie", "active_side": "front", "canvas_json": self.design.canvas_json}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(len(data["suggestions"]), 2)
+
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_scope_color_finalizes_to_full_canvas(self, mock_suggest):
+        mock_suggest.return_value = {
+            "scope": "color",
+            "message": "Here are two color options.",
+            "suggestions": [
+                {
+                    "id": "candidate-a",
+                    "label": "Red Option",
+                    "description": "Red fill",
+                    "patches": [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Blue Option",
+                    "description": "Blue fill",
+                    "patches": [{"blytzId": "obj-1", "property": "fill", "value": "#0000ff"}],
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({"message": "change colors to red and blue", "active_side": "front", "canvas_json": self.design.canvas_json}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(len(data["suggestions"]), 2)
+        sug0 = data["suggestions"][0]["canvasJSON"]
+        self.assertEqual(len(sug0["canvas"]["objects"]), 3)
+        self.assertEqual(sug0["canvas"]["objects"][0]["fill"], "#ff0000")
+
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_scope_color_preservation_violation_returns_503(self, mock_suggest):
+        mock_suggest.return_value = {
+            "scope": "color",
+            "message": "Bad color suggestion.",
+            "suggestions": [
+                {
+                    "id": "candidate-a",
+                    "label": "Bad Option",
+                    "description": "Adds object",
+                    "patches": [{"blytzId": "missing-id", "property": "fill", "value": "#ff0000"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Bad Option 2",
+                    "description": "Adds object 2",
+                    "patches": [{"blytzId": "missing-id", "property": "fill", "value": "#ff0000"}],
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({"message": "change colors to red", "active_side": "front", "canvas_json": self.design.canvas_json}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 503)
+        data = response.json()
+        self.assertFalse(data["ok"])
+        self.assertEqual(data["code"], "ai_scope_violation")
+
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_scope_color_identical_candidates_returns_two(self, mock_suggest):
+        mock_suggest.return_value = {
+            "scope": "color",
+            "message": "Identical color suggestions.",
+            "suggestions": [
+                {
+                    "id": "candidate-a",
+                    "label": "Option 1",
+                    "description": "Red fill",
+                    "patches": [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Option 2",
+                    "description": "Red fill",
+                    "patches": [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}],
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({"message": "change colors to red", "active_side": "front", "canvas_json": self.design.canvas_json}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(len(data["suggestions"]), 2)
+        self.assertEqual(data["suggestions"][0]["canvasJSON"], data["suggestions"][1]["canvasJSON"])
+
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_color_scope_validates_against_actual_garment_not_tee(self, mock_suggest):
+        self.design.garment_template = "hoodie"
+        self.design.save()
+        self.design.canvas_json = {
+            "schema_version": 1,
+            "width": 800,
+            "height": 800,
+            "canvas": {
+                "version": "6.6.1",
+                "objects": [
+                    {"type": "Rect", "blytzId": "obj-1", "left": 150, "top": 200, "width": 100, "height": 100, "fill": "#000"}
+                ]
+            }
+        }
+        self.design.save()
+
+        mock_suggest.return_value = {
+            "scope": "color",
+            "message": "Change color",
+            "suggestions": [
+                {
+                    "id": "candidate-a",
+                    "label": "Option 1",
+                    "description": "Red",
+                    "patches": [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Option 2",
+                    "description": "Blue",
+                    "patches": [{"blytzId": "obj-1", "property": "fill", "value": "#0000ff"}],
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({"message": "change color to red", "active_side": "front", "canvas_json": self.design.canvas_json}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+
+@override_settings(GEMINI_API_KEY="test-key")
+class AISuggestScopeStage1BTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        from django.contrib.auth import get_user_model
+        from apps.designs.models import Design
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            email="scope1b-test@example.com",
+            password="test-pass-123",
+            role=User.Role.CUSTOMER,
+        )
+        self.client.force_login(self.user)
+        self.design = Design.objects.create(
+            owner=self.user,
+            title="Test Design 1B",
+            garment_template="tee",
+            canvas_json={
+                "schema_version": 1,
+                "width": 800,
+                "height": 800,
+                "canvas": {
+                    "version": "6.6.1",
+                    "objects": [
+                        {"type": "IText", "blytzId": "t1", "left": 250, "top": 250, "width": 200, "height": 36, "text": "OLD TEXT", "fill": "#000"},
+                        {"type": "Rect", "blytzId": "r1", "left": 250, "top": 350, "width": 100, "height": 100, "fill": "#111"},
+                    ]
+                }
+            }
+        )
+        self.url = reverse("design_ai_suggest", args=[self.design.pk])
+
+    def test_detect_scope_change_text_returns_text(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("change the text to BLYTZ"), "text")
+
+    def test_detect_scope_make_it_say_returns_text(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("make it say HELLO WORLD"), "text")
+
+    def test_detect_scope_mixed_text_and_color_returns_redesign(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("change the text and the colors"), "redesign")
+
+    def test_detect_scope_text_plus_redesign_cue_returns_redesign(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("redesign the text completely"), "redesign")
+
+    def test_normalize_patch_candidates_text_scope_allows_text_property(self):
+        from services.ai_design import _normalize_patch_candidates
+        payload = {
+            "candidates": [
+                {
+                    "id": "candidate-a",
+                    "label": "Opt 1",
+                    "description": "Desc 1",
+                    "patches": [{"blytzId": "t1", "property": "text", "value": "BLYTZ"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Opt 2",
+                    "description": "Desc 2",
+                    "patches": [{"blytzId": "t1", "property": "text", "value": "BLYTZ"}],
+                },
+            ]
+        }
+        res = _normalize_patch_candidates(payload, original_canvas_json=self.design.canvas_json, scope="text")
+        self.assertEqual(len(res), 2)
+
+    def test_normalize_patch_candidates_text_scope_rejects_non_text_object(self):
+        from services.ai_design import _normalize_patch_candidates, AIDesignError
+        payload = {
+            "candidates": [
+                {
+                    "id": "candidate-a",
+                    "label": "Opt 1",
+                    "description": "Desc 1",
+                    "patches": [{"blytzId": "r1", "property": "text", "value": "BLYTZ"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Opt 2",
+                    "description": "Desc 2",
+                    "patches": [{"blytzId": "r1", "property": "text", "value": "BLYTZ"}],
+                },
+            ]
+        }
+        with self.assertRaises(AIDesignError):
+            _normalize_patch_candidates(payload, original_canvas_json=self.design.canvas_json, scope="text")
+
+    def test_normalize_patch_candidates_color_scope_rejects_text_property(self):
+        from services.ai_design import _normalize_patch_candidates, AIDesignError
+        payload = {
+            "candidates": [
+                {
+                    "id": "candidate-a",
+                    "label": "Opt 1",
+                    "description": "Desc 1",
+                    "patches": [{"blytzId": "t1", "property": "text", "value": "BLYTZ"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Opt 2",
+                    "description": "Desc 2",
+                    "patches": [{"blytzId": "t1", "property": "text", "value": "BLYTZ"}],
+                },
+            ]
+        }
+        with self.assertRaises(AIDesignError):
+            _normalize_patch_candidates(payload, original_canvas_json=self.design.canvas_json, scope="color")
+
+    def test_validate_preservation_text_passes_clean_text_change(self):
+        from apps.designs.ai_suggest import apply_patches, validate_preservation
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "t1", "property": "text", "value": "NEW"}]
+        patched = apply_patches(canvas, patches)
+        res = validate_preservation("text", canvas, patched, patches)
+        self.assertIsNone(res)
+
+    def test_validate_preservation_text_rejects_structural_change(self):
+        from apps.designs.ai_suggest import apply_patches, validate_preservation
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "t1", "property": "text", "value": "NEW"}]
+        patched = apply_patches(canvas, patches)
+        patched["canvas"]["objects"][0]["left"] = 999
+        with self.assertRaises(ValueError):
+            validate_preservation("text", canvas, patched, patches)
+
+    def test_validate_preservation_text_rejects_untargeted_object_change(self):
+        from apps.designs.ai_suggest import apply_patches, validate_preservation
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "t1", "property": "text", "value": "NEW"}]
+        patched = apply_patches(canvas, patches)
+        patched["canvas"]["objects"][1]["fill"] = "#ffffff"
+        with self.assertRaises(ValueError):
+            validate_preservation("text", canvas, patched, patches)
+
+    def test_validate_preservation_text_rejects_disallowed_property(self):
+        from apps.designs.ai_suggest import apply_patches, validate_preservation
+        canvas = self.design.canvas_json
+        patches = [{"blytzId": "t1", "property": "width", "value": 999}]
+        patched = apply_patches(canvas, patches)
+        with self.assertRaises(ValueError):
+            validate_preservation("text", canvas, patched, patches)
+
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_text_scope_finalizes_to_full_canvas(self, mock_suggest):
+        mock_suggest.return_value = {
+            "scope": "text",
+            "message": "Updated text.",
+            "suggestions": [
+                {
+                    "id": "candidate-a",
+                    "label": "Option 1",
+                    "description": "Text update",
+                    "patches": [{"blytzId": "t1", "property": "text", "value": "BLYTZ ONE"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Option 2",
+                    "description": "Text update",
+                    "patches": [{"blytzId": "t1", "property": "text", "value": "BLYTZ TWO"}],
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({"message": "change the text to BLYTZ", "active_side": "front", "canvas_json": self.design.canvas_json}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(len(data["suggestions"]), 2)
+        sug0 = data["suggestions"][0]["canvasJSON"]
+        self.assertEqual(len(sug0["canvas"]["objects"]), 2)
+        self.assertEqual(sug0["canvas"]["objects"][0]["text"], "BLYTZ ONE")
+
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_text_scope_preservation_violation_returns_503(self, mock_suggest):
+        mock_suggest.return_value = {
+            "scope": "text",
+            "message": "Bad text suggestion.",
+            "suggestions": [
+                {
+                    "id": "candidate-a",
+                    "label": "Bad Option",
+                    "description": "Removes object",
+                    "patches": [{"blytzId": "missing-id", "property": "text", "value": "BLYTZ"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Bad Option 2",
+                    "description": "Removes object 2",
+                    "patches": [{"blytzId": "missing-id", "property": "text", "value": "BLYTZ"}],
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({"message": "change the text to BLYTZ", "active_side": "front", "canvas_json": self.design.canvas_json}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 503)
+        data = response.json()
+        self.assertFalse(data["ok"])
+        self.assertEqual(data["code"], "ai_scope_violation")
+
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_text_scope_identical_candidates_returns_two(self, mock_suggest):
+        mock_suggest.return_value = {
+            "scope": "text",
+            "message": "Identical text suggestions.",
+            "suggestions": [
+                {
+                    "id": "candidate-a",
+                    "label": "Option 1",
+                    "description": "Text update",
+                    "patches": [{"blytzId": "t1", "property": "text", "value": "BLYTZ"}],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Option 2",
+                    "description": "Text update",
+                    "patches": [{"blytzId": "t1", "property": "text", "value": "BLYTZ"}],
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({"message": "change the text to BLYTZ", "active_side": "front", "canvas_json": self.design.canvas_json}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(len(data["suggestions"]), 2)
+        self.assertEqual(data["suggestions"][0]["canvasJSON"], data["suggestions"][1]["canvasJSON"])

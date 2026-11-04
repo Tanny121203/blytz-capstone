@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import socket
 import urllib.error
 import urllib.request
 from typing import Any
@@ -42,6 +43,12 @@ The customer message is a DESIGN INSTRUCTION, not literal canvas text.
 Interpret what they want drawn (words, shapes, colors, layout). Never paste the
 full user prompt into any text/IText/textbox. If they say 'Add a large red text
 that says TEST', the text content must be exactly "TEST".
+
+CREATIVE COMPOSITION & COMPLEXITY:
+- Generate detailed, professionally composed vector artwork. Infer suitable supporting elements, decorative framing, and background accents rather than relying solely on sparse or literal primitives.
+- When cultural, festival, or thematic motifs are requested (e.g. tribal patterns, festival geometry, ornate crests), construct rich, intricate arrangements using multiple coordinated geometric objects (circles, polygons, paths, rects) with deliberate symmetry, balanced spacing, hierarchy, and a cohesive color palette matching or complementing the garment.
+- Ensure artwork fills the primary printable panel appropriately with rich detail (dense, high-quality layouts are encouraged).
+- If the customer prohibits words (e.g. "no words"), do not include any text or IText objects.
 
 Apparel-only: refuse homework, code, NSFW, or unrelated chat. On refuse still
 return exactly two candidates that safely leave the printable panel empty
@@ -107,8 +114,477 @@ class AIDesignError(Exception):
 
 
 def gemini_configured() -> bool:
+    provider = (getattr(settings, "AI_DESIGN_PROVIDER", "") or "gemini").strip().lower()
+    if provider == "openai":
+        key = getattr(settings, "OPENAI_API_KEY", "") or ""
+        return bool(str(key).strip())
+    if provider == "groq":
+        key = getattr(settings, "GROQ_API_KEY", "") or ""
+        return bool(str(key).strip())
+    if provider == "mistral":
+        key = getattr(settings, "MISTRAL_API_KEY", "") or ""
+        return bool(str(key).strip())
+    if provider == "cerebras":
+        key = getattr(settings, "CEREBRAS_API_KEY", "") or ""
+        return bool(str(key).strip())
     key = getattr(settings, "GEMINI_API_KEY", "") or ""
     return bool(str(key).strip())
+
+
+def _groq_structured_output_schema() -> dict[str, Any]:
+    """
+    Groq Strict Structured Output JSON Schema for Blytz design suggestions.
+    Strict requirements:
+    - additionalProperties: false on every object.
+    - All properties listed in required.
+    - Nullable types expressed as ["type", "null"].
+    """
+    canvas_object_schema = {
+        "type": "object",
+        "properties": {
+            "type": {"type": "string"},
+            "left": {"type": "number"},
+            "top": {"type": "number"},
+            "width": {"type": ["number", "null"]},
+            "height": {"type": ["number", "null"]},
+            "fill": {"type": ["string", "null"]},
+            "stroke": {"type": ["string", "null"]},
+            "strokeWidth": {"type": ["number", "null"]},
+            "text": {"type": ["string", "null"]},
+            "fontSize": {"type": ["number", "null"]},
+            "fontFamily": {"type": ["string", "null"]},
+            "fontWeight": {"type": ["string", "null"]},
+            "textAlign": {"type": ["string", "null"]},
+            "angle": {"type": ["number", "null"]},
+            "opacity": {"type": ["number", "null"]},
+            "scaleX": {"type": ["number", "null"]},
+            "scaleY": {"type": ["number", "null"]},
+            "rx": {"type": ["number", "null"]},
+            "ry": {"type": ["number", "null"]},
+            "src": {"type": ["string", "null"]},
+            "blytzId": {"type": ["string", "null"]},
+            "id": {"type": ["string", "null"]},
+        },
+        "required": [
+            "type",
+            "left",
+            "top",
+            "width",
+            "height",
+            "fill",
+            "stroke",
+            "strokeWidth",
+            "text",
+            "fontSize",
+            "fontFamily",
+            "fontWeight",
+            "textAlign",
+            "angle",
+            "opacity",
+            "scaleX",
+            "scaleY",
+            "rx",
+            "ry",
+            "src",
+            "blytzId",
+            "id",
+        ],
+        "additionalProperties": False,
+    }
+
+    canvas_payload_schema = {
+        "type": "object",
+        "properties": {
+            "schema_version": {"type": "integer"},
+            "width": {"type": "integer"},
+            "height": {"type": "integer"},
+            "canvas": {
+                "type": "object",
+                "properties": {
+                    "version": {"type": "string"},
+                    "objects": {
+                        "type": "array",
+                        "items": canvas_object_schema,
+                    },
+                },
+                "required": ["version", "objects"],
+                "additionalProperties": False,
+            },
+        },
+        "required": ["schema_version", "width", "height", "canvas"],
+        "additionalProperties": False,
+    }
+
+    candidate_schema = {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string"},
+            "label": {"type": "string"},
+            "description": {"type": "string"},
+            "canvasJSON": canvas_payload_schema,
+            "otherSideCanvasJSON": canvas_payload_schema,
+        },
+        "required": [
+            "id",
+            "label",
+            "description",
+            "canvasJSON",
+            "otherSideCanvasJSON",
+        ],
+        "additionalProperties": False,
+    }
+
+    root_schema = {
+        "type": "object",
+        "properties": {
+            "message": {"type": "string"},
+            "candidates": {
+                "type": "array",
+                "items": candidate_schema,
+            },
+        },
+        "required": ["message", "candidates"],
+        "additionalProperties": False,
+    }
+    return root_schema
+
+
+def _call_openai_compatible(
+    *,
+    endpoint_url: str,
+    system_prompt: str,
+    user_payload: dict[str, Any],
+    api_key: str,
+    model: str,
+    provider_name: str,
+    max_tokens: int = 4096,
+    timeout: float = 60,
+    scope: str = "redesign",
+    original_canvas_json: dict | None = None,
+) -> dict[str, Any]:
+    body = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    system_prompt
+                    + "\n\nCRITICAL FORMAT REQUIREMENT: You must output ONLY valid JSON matching the exact schema specified above. Do not include any conversational preamble, markdown code fences, or trailing text. The response must start with '{' and end with '}'."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Customer request and structured garment/print context "
+                    "(JSON). Prefer print_areas; slight overflow OK.\n"
+                    + json.dumps(user_payload, ensure_ascii=False)
+                ),
+            },
+        ],
+        "temperature": 0.7,
+        "max_tokens": max_tokens,
+    }
+    if provider_name == "groq":
+        body["include_reasoning"] = False
+        body["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "blytz_design_suggestions",
+                "strict": True,
+                "schema": _groq_structured_output_schema(),
+            },
+        }
+    else:
+        body["response_format"] = {"type": "json_object"}
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+    if provider_name in ("groq", "cerebras"):
+        headers["User-Agent"] = "BlytzClothing/1.0"
+
+    req = urllib.request.Request(
+        endpoint_url,
+        data=json.dumps(body).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8")
+            status = getattr(resp, "status", 200)
+    except urllib.error.HTTPError as exc:
+        status_code = getattr(exc, "code", "?")
+        reason = ""
+        err_code = "ai_upstream"
+        err_type = ""
+        failed_gen = ""
+        try:
+            err_body = exc.read().decode("utf-8", errors="replace")[:1000]
+            err_json = json.loads(err_body)
+            err_obj = err_json.get("error") if isinstance(err_json, dict) else None
+            if isinstance(err_obj, dict):
+                reason = str(
+                    err_obj.get("message")
+                    or err_obj.get("status")
+                    or err_obj.get("code")
+                    or ""
+                )[:300]
+                err_code_raw = str(err_obj.get("code") or "").lower()
+                err_type = str(err_obj.get("type") or "").lower()
+                failed_gen = str(err_obj.get("failed_generation") or "")[:200]
+                if "insufficient_quota" in err_code_raw or "quota" in reason.lower() or "quota" in err_type:
+                    err_code = "ai_quota"
+                elif "rate_limit" in err_code_raw or status_code == 429:
+                    err_code = "ai_rate_limit"
+                elif status_code == 403:
+                    if (
+                        "model" in err_code_raw
+                        or "model" in err_type
+                        or "not_found" in err_code_raw
+                        or "organization" in reason.lower()
+                        or "project" in reason.lower()
+                        or "disabled" in reason.lower()
+                    ):
+                        err_code = "ai_model_permission"
+                    else:
+                        err_code = "ai_forbidden"
+                elif status_code == 400:
+                    if "json" in reason.lower() or "validate" in reason.lower() or "schema" in reason.lower():
+                        err_code = "ai_parse"
+            elif err_body:
+                reason = err_body[:120].replace("\n", " ")
+        except Exception:
+            reason = ""
+        logger.warning(
+            "ai_suggest %s_http_error status=%s model=%s code=%s type=%s reason=%s failed_generation_present=%s",
+            provider_name,
+            status_code,
+            model,
+            err_code,
+            err_type,
+            reason,
+            bool(failed_gen),
+        )
+        if status_code == 401:
+            raise AIDesignError(
+                f"AI suggestions are unavailable ({provider_name.capitalize()} API key rejected).",
+                code="ai_unavailable",
+            ) from exc
+        if status_code == 403:
+            if err_code == "ai_model_permission":
+                detail_msg = reason if reason else f"Selected model {model} is not available or permitted on your {provider_name.capitalize()} account."
+                raise AIDesignError(
+                    f"AI suggestions are unavailable ({detail_msg}).",
+                    code="ai_model_permission",
+                ) from exc
+            detail_msg = reason if reason else f"{provider_name.capitalize()} access forbidden / 403."
+            raise AIDesignError(
+                f"AI suggestions are unavailable ({detail_msg}).",
+                code="ai_forbidden",
+            ) from exc
+        if status_code == 429:
+            if err_code == "ai_quota":
+                raise AIDesignError(
+                    f"AI suggestions are unavailable ({provider_name.capitalize()} API quota or credits exhausted).",
+                    code="ai_quota",
+                ) from exc
+            raise AIDesignError(
+                "AI rate limit exceeded. Please try again later.",
+                code="ai_rate_limit",
+            ) from exc
+        if status_code == 400:
+            if err_code == "ai_parse":
+                detail_msg = reason if reason else "Model failed to generate valid JSON according to requirements."
+                raise AIDesignError(
+                    f"AI suggestion request failed: {detail_msg}",
+                    code="ai_parse",
+                ) from exc
+        if status_code in (401, 403):
+            raise AIDesignError(
+                f"AI suggestions are unavailable ({provider_name.capitalize()} API access rejected).",
+                code="ai_unavailable",
+            ) from exc
+        raise AIDesignError(
+            "AI service request failed. Please try again.",
+            code=err_code,
+        ) from exc
+    except (TimeoutError, socket.timeout) as exc:
+        logger.warning("ai_suggest %s_timeout timeout_seconds=%s", provider_name, timeout)
+        raise AIDesignError(
+            "AI service request timed out. Please try again later.",
+            code="ai_timeout",
+        ) from exc
+    except urllib.error.URLError as exc:
+        if isinstance(getattr(exc, "reason", None), (TimeoutError, socket.timeout)) or "timeout" in str(exc.reason).lower():
+            logger.warning("ai_suggest %s_timeout timeout_seconds=%s", provider_name, timeout)
+            raise AIDesignError(
+                "AI service request timed out. Please try again later.",
+                code="ai_timeout",
+            ) from exc
+        logger.warning("ai_suggest %s_network_error", provider_name)
+        raise AIDesignError(
+            "AI service is unreachable. Please try again later.",
+            code="ai_upstream",
+        ) from exc
+    except urllib.error.URLError as exc:
+        logger.warning("ai_suggest %s_network_error", provider_name)
+        raise AIDesignError(
+            "AI service is unreachable. Please try again later.",
+            code="ai_upstream",
+        ) from exc
+
+    if status >= 400:
+        logger.warning("ai_suggest %s_bad_status status=%s", provider_name, status)
+        raise AIDesignError(
+            "AI service request failed. Please try again.",
+            code="ai_upstream",
+        )
+
+    try:
+        envelope = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise AIDesignError(
+            "AI service returned an unreadable response.", code="ai_parse"
+        ) from exc
+
+    usage = envelope.get("usage") or {}
+    prompt_tokens = usage.get("prompt_tokens")
+    output_tokens = usage.get("completion_tokens")
+
+    try:
+        choices = envelope.get("choices", [])
+        if not choices:
+            raise AIDesignError("AI service returned no choices.", code="ai_parse")
+        first_choice = choices[0]
+        finish_reason = str(first_choice.get("finish_reason") or "").lower()
+        if finish_reason == "length":
+            logger.warning(
+                "ai_suggest cerebras_length_exceeded model=%s prompt_tokens=%s completion_tokens=%s",
+                model,
+                prompt_tokens,
+                output_tokens,
+            )
+            raise AIDesignError(
+                "AI response was cut off due to token limits. Please try again.",
+                code="ai_length",
+            )
+        msg_obj = first_choice.get("message") or {}
+        content = str(msg_obj.get("content") or "")
+        if not content.strip():
+            raise AIDesignError("AI service returned an empty response.", code="ai_empty")
+    except (AttributeError, TypeError) as exc:
+        raise AIDesignError(
+            "AI service returned an unexpected shape.", code="ai_parse"
+        ) from exc
+
+    parsed = _extract_json_object(content)
+    if scope in ("color", "text"):
+        suggestions = _normalize_patch_candidates(parsed, original_canvas_json=original_canvas_json or {}, scope=scope)
+    else:
+        suggestions = _normalize_candidates(parsed)
+    assistant_message = str(
+        parsed.get("message")
+        or "Here are two design candidates. Select one to preview."
+    ).strip()
+
+    res = {
+        "message": assistant_message,
+        "suggestions": suggestions,
+        "usage": {
+            "prompt_tokens": prompt_tokens,
+            "output_tokens": output_tokens,
+        },
+    }
+    if scope in ("color", "text"):
+        res["scope"] = scope
+    return res
+
+
+def _call_openai(
+    *,
+    system_prompt: str,
+    user_payload: dict[str, Any],
+    api_key: str,
+    model: str,
+    scope: str = "redesign",
+    original_canvas_json: dict | None = None,
+) -> dict[str, Any]:
+    return _call_openai_compatible(
+        endpoint_url="https://api.openai.com/v1/chat/completions",
+        system_prompt=system_prompt,
+        user_payload=user_payload,
+        api_key=api_key,
+        model=model,
+        provider_name="openai",
+        scope=scope,
+        original_canvas_json=original_canvas_json,
+    )
+
+
+def _call_groq(
+    *,
+    system_prompt: str,
+    user_payload: dict[str, Any],
+    api_key: str,
+    model: str,
+    scope: str = "redesign",
+    original_canvas_json: dict | None = None,
+) -> dict[str, Any]:
+    return _call_openai_compatible(
+        endpoint_url="https://api.groq.com/openai/v1/chat/completions",
+        system_prompt=system_prompt,
+        user_payload=user_payload,
+        api_key=api_key,
+        model=model,
+        provider_name="groq",
+        scope=scope,
+        original_canvas_json=original_canvas_json,
+    )
+
+
+def _call_mistral(
+    *,
+    system_prompt: str,
+    user_payload: dict[str, Any],
+    api_key: str,
+    model: str,
+    scope: str = "redesign",
+    original_canvas_json: dict | None = None,
+) -> dict[str, Any]:
+    return _call_openai_compatible(
+        endpoint_url="https://api.mistral.ai/v1/chat/completions",
+        system_prompt=system_prompt,
+        user_payload=user_payload,
+        api_key=api_key,
+        model=model,
+        provider_name="mistral",
+        scope=scope,
+        original_canvas_json=original_canvas_json,
+    )
+
+
+def _call_cerebras(
+    *,
+    system_prompt: str,
+    user_payload: dict[str, Any],
+    api_key: str,
+    model: str,
+    scope: str = "redesign",
+    original_canvas_json: dict | None = None,
+) -> dict[str, Any]:
+    max_tokens = getattr(settings, "CEREBRAS_MAX_TOKENS", 4096)
+    return _call_openai_compatible(
+        endpoint_url="https://api.cerebras.ai/v1/chat/completions",
+        system_prompt=system_prompt,
+        user_payload=user_payload,
+        api_key=api_key,
+        model=model,
+        provider_name="cerebras",
+        max_tokens=max_tokens,
+        scope=scope,
+        original_canvas_json=original_canvas_json,
+    )
 
 
 def _extract_json_object(text: str) -> dict[str, Any]:
@@ -174,6 +650,156 @@ def _normalize_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return normalized
 
 
+def _patch_prompt(*, scope: str, dual_side: bool) -> str:
+    dual_block = ""
+    if dual_side:
+        dual_block = """
+Dual-side mode is ON for this turn:
+- The customer has requested a change that applies to the active side only. Do not modify objects on the other side.
+"""
+    if scope == "text":
+        return f"""You are Blytz's text-adjustment assistant. Do not generate new canvas JSON.
+
+Return ONLY a single JSON object with this exact shape:
+{{
+  "message": "short assistant reply to the customer",
+  "candidates": [
+    {{
+      "id": "candidate-a",
+      "label": "short label",
+      "description": "one-line description",
+      "patches": [
+        {{"blytzId": "...", "property": "text", "value": "New Text"}}
+      ]
+    }},
+    {{
+      "id": "candidate-b",
+      "label": "short label",
+      "description": "one-line description",
+      "patches": [
+        {{"blytzId": "...", "property": "text", "value": "New Text"}}
+      ]
+    }}
+  ]
+}}
+
+{dual_block}
+
+Allowed properties for this mode, listed explicitly: text, fontSize, fontFamily, fontWeight, fontStyle, fill, stroke.
+- Every blytzId must reference a text, IText, or textbox object in current_canvas. Do not patch rectangles, circles, ellipses, paths, lines, polygons, or images.
+- Do not change left, top, width, height, angle, scaleX, scaleY, type, or any property not in the allowed list above.
+- Do not add, remove, reorder, resize, or move any object. The text object's bounding box will be recalculated by the editor after load.
+- Property value types: text and fontFamily and fontStyle and fontWeight are strings; fontSize is a number (integer); fill and stroke are strings (#rrggbb or a CSS color keyword).
+- If the instruction cannot be fulfilled as text-only, return patches: [] for that candidate and explain briefly in message.
+- Return exactly two candidates. If two meaningfully different interpretations exist, produce two; otherwise produce the same candidate twice.
+"""
+    return f"""You are Blytz's color-adjustment assistant. Do not generate new canvas JSON.
+
+Return ONLY a single JSON object with this exact shape:
+{{
+  "message": "short assistant reply to the customer",
+  "candidates": [
+    {{
+      "id": "candidate-a",
+      "label": "short label",
+      "description": "one-line description",
+      "patches": [
+        {{"blytzId": "...", "property": "fill", "value": "#rrggbb"}}
+      ]
+    }},
+    {{
+      "id": "candidate-b",
+      "label": "short label",
+      "description": "one-line description",
+      "patches": [
+        {{"blytzId": "...", "property": "fill", "value": "#rrggbb"}}
+      ]
+    }}
+  ]
+}}
+
+{dual_block}
+
+Hard rules:
+- Every blytzId must be copied verbatim from an object in current_canvas.
+- Only fill and stroke may be changed. Do not change left, top, width, height, angle, scaleX, scaleY, type, text, fontSize, fontFamily, fontWeight, or any other property.
+- Do not add, remove, reorder, resize, move, or rotate any object.
+- If the instruction cannot be fulfilled as color-only, return patches: [] for that candidate and explain briefly in message.
+- Return exactly two candidates. If two meaningfully different color assignments are possible, produce two; if only one is sensible, produce it twice.
+"""
+
+
+def _normalize_patch_candidates(payload: dict, *, original_canvas_json: dict, scope: str) -> list[dict]:
+    if not isinstance(payload, dict):
+        raise AIDesignError(
+            "AI returned malformed color suggestions. Please retry.",
+            code="ai_validation",
+        )
+    from apps.designs.ai_suggest import TEXT_PATCHABLE_PROPERTIES, TEXT_OBJECT_TYPES
+
+    if scope == "color":
+        allowed_props = {"fill", "stroke"}
+    elif scope == "text":
+        allowed_props = TEXT_PATCHABLE_PROPERTIES
+    else:
+        raise AIDesignError(code="ai_validation", message="Unsupported scope for patch mode")
+
+    candidates = payload.get("candidates") or payload.get("suggestions")
+    if not isinstance(candidates, list) or len(candidates) != 2:
+        raise AIDesignError(
+            "AI returned malformed color suggestions. Please retry.",
+            code="ai_validation",
+        )
+    orig_canvas = original_canvas_json.get("canvas", {}) if isinstance(original_canvas_json, dict) else {}
+    orig_objs = orig_canvas.get("objects", []) if isinstance(orig_canvas, dict) else {}
+    orig_map = {str(o.get("blytzId")): o for o in orig_objs if o.get("blytzId") is not None}
+    valid_ids = set(orig_map.keys())
+
+    normalized: list[dict[str, Any]] = []
+    for i, item in enumerate(candidates):
+        if not isinstance(item, dict):
+            raise AIDesignError(
+                "AI returned malformed color suggestions. Please retry.",
+                code="ai_validation",
+            )
+        patches_raw = item.get("patches")
+        if not isinstance(patches_raw, list):
+            patches_raw = []
+        normalized_patches = []
+        for p in patches_raw:
+            if not isinstance(p, dict):
+                raise AIDesignError(
+                    "AI returned malformed color suggestions. Please retry.",
+                    code="ai_validation",
+                )
+            bid = str(p.get("blytzId") or "")
+            prop = str(p.get("property") or "").strip()
+            val = p.get("value")
+            if bid not in valid_ids or prop not in allowed_props:
+                raise AIDesignError(
+                    "AI returned malformed color suggestions. Please retry.",
+                    code="ai_validation",
+                )
+            if scope == "text":
+                target_obj = orig_map[bid]
+                if str(target_obj.get("type", "")) not in TEXT_OBJECT_TYPES:
+                    raise AIDesignError(
+                        code="ai_validation",
+                        message="Text patch targets a non-text object",
+                    )
+            normalized_patches.append({"blytzId": bid, "property": prop, "value": val})
+
+        cid = str(item.get("id") or f"candidate-{i + 1}")
+        entry: dict[str, Any] = {
+            "id": cid,
+            "label": str(item.get("label") or f"Option {i + 1}")[:80],
+            "description": str(item.get("description") or "")[:240],
+            "patches": normalized_patches,
+        }
+        normalized.append(entry)
+    return normalized
+
+
 def suggest_design_candidates(
     *,
     message: str,
@@ -185,23 +811,15 @@ def suggest_design_candidates(
     other_side_print_areas: list[dict[str, Any]] | None = None,
     dual_side: bool = False,
     repair_hint: str | None = None,
+    scope: str = "redesign",
 ) -> dict[str, Any]:
     """
-    Call Gemini and return {message, suggestions, usage, dual_side}.
+    Call Gemini or OpenAI and return {message, suggestions, usage, dual_side}.
 
     Raises AIDesignError on configuration / transport / parse failures.
     Does not validate canvas schema (caller must).
     """
-    api_key = (getattr(settings, "GEMINI_API_KEY", "") or "").strip()
-    if not api_key:
-        raise AIDesignError(
-            "AI suggestions are unavailable (no API key configured).",
-            code="ai_unavailable",
-        )
-
-    model = (
-        getattr(settings, "GEMINI_MODEL", "") or "gemini-3.5-flash-lite"
-    ).strip() or "gemini-3.5-flash-lite"
+    provider = (getattr(settings, "AI_DESIGN_PROVIDER", "") or "gemini").strip().lower()
     side = active_side if active_side in ("front", "back") else "front"
     other_side = "back" if side == "front" else "front"
     user_payload: dict[str, Any] = {
@@ -220,8 +838,112 @@ def suggest_design_candidates(
     if repair_hint:
         user_payload["repair_hint"] = str(repair_hint)[:500]
 
+    if scope not in ("redesign", "color", "text"):
+        raise AIDesignError("Unsupported scope", code="ai_validation")
+
+    if scope == "redesign":
+        system_prompt = _system_prompt(dual_side=dual_side)
+    else:
+        system_prompt = _patch_prompt(scope=scope, dual_side=dual_side)
+
+    if provider == "openai":
+        api_key = (getattr(settings, "OPENAI_API_KEY", "") or "").strip()
+        if not api_key:
+            raise AIDesignError(
+                "AI suggestions are unavailable (no OpenAI API key configured).",
+                code="ai_unavailable",
+            )
+        model = (
+            getattr(settings, "OPENAI_MODEL", "") or "gpt-4o-mini"
+        ).strip() or "gpt-4o-mini"
+        res = _call_openai(
+            system_prompt=system_prompt,
+            user_payload=user_payload,
+            api_key=api_key,
+            model=model,
+            scope=scope,
+            original_canvas_json=canvas_json,
+        )
+        res["dual_side"] = bool(dual_side)
+        return res
+
+    if provider == "groq":
+        api_key = (getattr(settings, "GROQ_API_KEY", "") or "").strip()
+        if not api_key:
+            raise AIDesignError(
+                "AI suggestions are unavailable (no Groq API key configured).",
+                code="ai_unavailable",
+            )
+        model = (
+            getattr(settings, "GROQ_MODEL", "") or "llama-3.3-70b-versatile"
+        ).strip() or "llama-3.3-70b-versatile"
+        res = _call_groq(
+            system_prompt=system_prompt,
+            user_payload=user_payload,
+            api_key=api_key,
+            model=model,
+            scope=scope,
+            original_canvas_json=canvas_json,
+        )
+        res["dual_side"] = bool(dual_side)
+        return res
+
+    if provider == "mistral":
+        api_key = (getattr(settings, "MISTRAL_API_KEY", "") or "").strip()
+        if not api_key:
+            raise AIDesignError(
+                "AI suggestions are unavailable (no Mistral API key configured).",
+                code="ai_unavailable",
+            )
+        model = (
+            getattr(settings, "MISTRAL_MODEL", "") or "mistral-small-latest"
+        ).strip() or "mistral-small-latest"
+        res = _call_mistral(
+            system_prompt=system_prompt,
+            user_payload=user_payload,
+            api_key=api_key,
+            model=model,
+            scope=scope,
+            original_canvas_json=canvas_json,
+        )
+        res["dual_side"] = bool(dual_side)
+        return res
+
+    if provider == "cerebras":
+        api_key = (getattr(settings, "CEREBRAS_API_KEY", "") or "").strip()
+        if not api_key:
+            raise AIDesignError(
+                "AI suggestions are unavailable (no Cerebras API key configured).",
+                code="ai_unavailable",
+            )
+        model = (
+            getattr(settings, "CEREBRAS_MODEL", "") or "llama3.1-70b"
+        ).strip() or "llama3.1-70b"
+        res = _call_cerebras(
+            system_prompt=system_prompt,
+            user_payload=user_payload,
+            api_key=api_key,
+            model=model,
+            scope=scope,
+            original_canvas_json=canvas_json,
+        )
+        res["dual_side"] = bool(dual_side)
+        return res
+
+    # Default: Gemini
+    api_key = (getattr(settings, "GEMINI_API_KEY", "") or "").strip()
+    if not api_key:
+        raise AIDesignError(
+            "AI suggestions are unavailable (no API key configured).",
+            code="ai_unavailable",
+        )
+
+    model = (
+        getattr(settings, "GEMINI_MODEL", "") or "gemini-3.5-flash-lite"
+    ).strip() or "gemini-3.5-flash-lite"
+
     body = {
-        "systemInstruction": {"parts": [{"text": _system_prompt(dual_side=dual_side)}]},
+        "systemInstruction": {"parts": [{"text": system_prompt}]},
         "contents": [
             {
                 "role": "user",
@@ -242,6 +964,7 @@ def suggest_design_candidates(
         },
     }
 
+    timeout = getattr(settings, "GEMINI_REQUEST_TIMEOUT", 120)
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={api_key}"
@@ -253,9 +976,15 @@ def suggest_design_candidates(
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read().decode("utf-8")
             status = getattr(resp, "status", 200)
+    except (TimeoutError, socket.timeout) as exc:
+        logger.warning("ai_suggest gemini_timeout timeout_seconds=%s", timeout)
+        raise AIDesignError(
+            "AI service request timed out. Please try again later.",
+            code="ai_timeout",
+        ) from exc
     except urllib.error.HTTPError as exc:
         status_code = getattr(exc, "code", "?")
         reason = ""
@@ -287,6 +1016,12 @@ def suggest_design_candidates(
             code="ai_upstream",
         ) from exc
     except urllib.error.URLError as exc:
+        if isinstance(getattr(exc, "reason", None), (TimeoutError, socket.timeout)) or "timeout" in str(exc.reason).lower():
+            logger.warning("ai_suggest gemini_timeout timeout_seconds=%s", timeout)
+            raise AIDesignError(
+                "AI service request timed out. Please try again later.",
+                code="ai_timeout",
+            ) from exc
         logger.warning("ai_suggest gemini_network_error")
         raise AIDesignError(
             "AI service is unreachable. Please try again later.",
@@ -328,13 +1063,16 @@ def suggest_design_candidates(
         ) from exc
 
     parsed = _extract_json_object(text)
-    suggestions = _normalize_candidates(parsed)
+    if scope in ("color", "text"):
+        suggestions = _normalize_patch_candidates(parsed, original_canvas_json=canvas_json or {}, scope=scope)
+    else:
+        suggestions = _normalize_candidates(parsed)
     assistant_message = str(
         parsed.get("message")
         or "Here are two design candidates. Select one to preview."
     ).strip()
 
-    return {
+    res = {
         "message": assistant_message,
         "suggestions": suggestions,
         "dual_side": bool(dual_side),
@@ -343,3 +1081,6 @@ def suggest_design_candidates(
             "output_tokens": output_tokens,
         },
     }
+    if scope in ("color", "text"):
+        res["scope"] = scope
+    return res
