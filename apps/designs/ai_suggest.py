@@ -56,6 +56,74 @@ class AISuggestValidationError(ValueError):
         super().__init__(message)
 
 
+def validate_reference_image(image: dict | None) -> dict | None:
+    """
+    Validate an incoming reference image. Raise AISuggestValidationError
+    (existing class) with a user-readable message on failure.
+    Return a normalized {"data": base64_str, "mime_type": mime_str}.
+    Never write to disk. Never persist.
+    """
+    if image is None:
+        return None  # caller uses `if reference_image:` so None is fine
+    if not isinstance(image, dict):
+        raise AISuggestValidationError("Reference image must be an object.")
+    data = image.get("data")
+    mime = image.get("mime_type")
+    if not isinstance(data, str) or not data:
+        raise AISuggestValidationError("Reference image data is missing.")
+    if not isinstance(mime, str):
+        raise AISuggestValidationError("Reference image mime_type is missing.")
+    mime = mime.strip().lower()
+    if mime not in ("image/png", "image/jpeg", "image/webp"):
+        raise AISuggestValidationError(
+            "Reference image must be PNG, JPEG, or WebP."
+        )
+    # Base64 decode, bounded. Cap decoded bytes at 4 MB.
+    MAX_BYTES = 4 * 1024 * 1024
+    # Reject pre-decode if the base64 string is obviously too big
+    # (base64 is ~4/3 of raw; allow 20% overhead)
+    if len(data) > int(MAX_BYTES * 1.4):
+        raise AISuggestValidationError(
+            "Reference image is too large (max 4 MB)."
+        )
+    import base64
+    try:
+        raw = base64.b64decode(data, validate=True)
+    except Exception:
+        raise AISuggestValidationError("Reference image is not valid base64.")
+    if len(raw) > MAX_BYTES:
+        raise AISuggestValidationError(
+            "Reference image is too large (max 4 MB)."
+        )
+    # Magic byte check
+    if mime == "image/png" and not raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise AISuggestValidationError("Reference image content is not PNG.")
+    if mime == "image/jpeg" and not raw.startswith(b"\xff\xd8\xff"):
+        raise AISuggestValidationError("Reference image content is not JPEG.")
+    if mime == "image/webp" and not (
+        raw[:4] == b"RIFF" and raw[8:12] == b"WEBP"
+    ):
+        raise AISuggestValidationError("Reference image content is not WebP.")
+    # Pillow verify + dimension cap
+    try:
+        from PIL import Image
+        import io
+        with Image.open(io.BytesIO(raw)) as im:
+            im.verify()
+        # Re-open because verify() closes the stream
+        with Image.open(io.BytesIO(raw)) as im:
+            w, h = im.size
+            if w > 2048 or h > 2048:
+                raise AISuggestValidationError(
+                    "Reference image dimensions must be 2048x2048 or smaller."
+                )
+    except AISuggestValidationError:
+        raise
+    except Exception:
+        raise AISuggestValidationError("Reference image is not a valid image.")
+    return {"data": data, "mime_type": mime}
+
+
 def _utf8_byte_length(value: str) -> int:
     return len(value.encode("utf-8"))
 
@@ -201,6 +269,8 @@ TEXT_CUES = (
     "the text should be", "the text should say", "text should be", "text should say",
     "change the wording", "change wording",
     "replace the text", "replace text",
+    "use this font", "use the font", "change the font",
+    "font from", "font in", "typeface",
 )
 
 TEXT_PATCHABLE_PROPERTIES = frozenset({

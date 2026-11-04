@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 CANDIDATES_REQUIRED = 2
 
 
-def _system_prompt(*, dual_side: bool) -> str:
+def _system_prompt(*, dual_side: bool, image_present: bool = False) -> str:
     dual_block = ""
     if dual_side:
         dual_block = """
@@ -37,6 +37,20 @@ Dual-side mode is OFF:
 - Do not include otherSideCanvasJSON.
 """
 
+    image_note = ""
+    if image_present:
+        image_note = """
+A reference image is attached to this turn. Use it as design guidance:
+- Extract relevant characteristics: colors, typography, patterns, composition,
+  decorative elements.
+- Do NOT reproduce the entire photograph, the model wearing it, the physical
+  garment shape, or the background.
+- Adapt the extracted characteristics to the current Blytz garment template
+  and print-area constraints.
+- Preserve the existing design elements unless the customer explicitly asked
+  for a redesign.
+"""
+
     return f"""You are Blytz's apparel design assistant for a Fabric.js editor.
 
 The customer message is a DESIGN INSTRUCTION, not literal canvas text.
@@ -47,7 +61,7 @@ that says TEST', the text content must be exactly "TEST".
 CREATIVE COMPOSITION & COMPLEXITY:
 - Generate detailed, professionally composed vector artwork. Infer suitable supporting elements, decorative framing, and background accents rather than relying solely on sparse or literal primitives.
 - When cultural, festival, or thematic motifs are requested (e.g. tribal patterns, festival geometry, ornate crests), construct rich, intricate arrangements using multiple coordinated geometric objects (circles, polygons, paths, rects) with deliberate symmetry, balanced spacing, hierarchy, and a cohesive color palette matching or complementing the garment.
-- Ensure artwork fills the primary printable panel appropriately with rich detail (dense, high-quality layouts are encouraged).
+- Ensure artwork fills the primary printable panel. IMPORTANT: Use a maximum of 25 objects per candidate. Do not generate dense pixel-art grids of tiny rectangles. For complex shapes like hearts or logos, use a few large polygons or a single path object instead of hundreds of small shapes.
 - If the customer prohibits words (e.g. "no words"), do not include any text or IText objects.
 
 Apparel-only: refuse homework, code, NSFW, or unrelated chat. On refuse still
@@ -84,6 +98,7 @@ Return ONLY a single JSON object (no markdown fences) with this exact shape:
 
 {dual_block}
 
+{image_note}
 Hard rules:
 - Exactly TWO candidates — never one, never three+.
 - Each canvasJSON / otherSideCanvasJSON is ONE side only. Do NOT include a "views" key.
@@ -129,6 +144,23 @@ def gemini_configured() -> bool:
         return bool(str(key).strip())
     key = getattr(settings, "GEMINI_API_KEY", "") or ""
     return bool(str(key).strip())
+
+
+def vision_configured() -> bool:
+    """
+    True when AI is live AND the active provider supports image input.
+    """
+    provider = (
+        getattr(settings, "AI_DESIGN_PROVIDER", "gemini") or "gemini"
+    ).strip().lower()
+    
+    if provider == "gemini":
+        return bool((getattr(settings, "GEMINI_API_KEY", "") or "").strip())
+    if provider == "deepseek":
+        return bool((getattr(settings, "DEEPSEEK_API_KEY", "") or "").strip())
+        
+    # OpenAI, Groq, Mistral, Cerebras are currently text-only or gated
+    return False
 
 
 def _groq_structured_output_schema() -> dict[str, Any]:
@@ -261,7 +293,37 @@ def _call_openai_compatible(
     timeout: float = 60,
     scope: str = "redesign",
     original_canvas_json: dict | None = None,
+    reference_image: dict | None = None,
 ) -> dict[str, Any]:
+    if provider_name in ("groq", "mistral", "cerebras") and reference_image is not None:
+        raise AIDesignError(
+            "Image input is not supported by the current provider.",
+            code="ai_validation",
+        )
+
+    user_content: Any = (
+        "Customer request and structured garment/print context "
+        "(JSON). Prefer print_areas; slight overflow OK.\n"
+        + json.dumps(user_payload, ensure_ascii=False)
+    )
+    if provider_name in ("openai", "deepseek") and reference_image is not None:
+        user_content = [
+            {
+                "type": "text",
+                "text": (
+                    "Customer request and structured garment/print context "
+                    "(JSON). Prefer print_areas; slight overflow OK.\n"
+                    + json.dumps(user_payload, ensure_ascii=False)
+                ),
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{reference_image['mime_type']};base64,{reference_image['data']}"
+                },
+            },
+        ]
+
     body = {
         "model": model,
         "messages": [
@@ -274,11 +336,7 @@ def _call_openai_compatible(
             },
             {
                 "role": "user",
-                "content": (
-                    "Customer request and structured garment/print context "
-                    "(JSON). Prefer print_areas; slight overflow OK.\n"
-                    + json.dumps(user_payload, ensure_ascii=False)
-                ),
+                "content": user_content,
             },
         ],
         "temperature": 0.7,
@@ -309,10 +367,28 @@ def _call_openai_compatible(
         headers=headers,
         method="POST",
     )
+    import time
+    max_retries = 3
+    last_exception = None
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            raw = resp.read().decode("utf-8")
-            status = getattr(resp, "status", 200)
+        for attempt in range(max_retries):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    raw = resp.read().decode("utf-8")
+                    status = getattr(resp, "status", 200)
+                break  # success, exit loop
+            except urllib.error.HTTPError as exc:
+                if exc.code == 503 and attempt < max_retries - 1:
+                    last_exception = exc
+                    time.sleep(2 ** attempt)  # exponential backoff
+                    continue
+                raise exc
+            except (TimeoutError, socket.timeout) as exc:
+                if attempt < max_retries - 1:
+                    last_exception = exc
+                    time.sleep(2 ** attempt)
+                    continue
+                raise exc
     except urllib.error.HTTPError as exc:
         status_code = getattr(exc, "code", "?")
         reason = ""
@@ -460,7 +536,8 @@ def _call_openai_compatible(
         finish_reason = str(first_choice.get("finish_reason") or "").lower()
         if finish_reason == "length":
             logger.warning(
-                "ai_suggest cerebras_length_exceeded model=%s prompt_tokens=%s completion_tokens=%s",
+                "ai_suggest %s_length_exceeded model=%s prompt_tokens=%s completion_tokens=%s",
+                provider_name,
                 model,
                 prompt_tokens,
                 output_tokens,
@@ -509,6 +586,7 @@ def _call_openai(
     model: str,
     scope: str = "redesign",
     original_canvas_json: dict | None = None,
+    reference_image: dict | None = None,
 ) -> dict[str, Any]:
     return _call_openai_compatible(
         endpoint_url="https://api.openai.com/v1/chat/completions",
@@ -519,6 +597,7 @@ def _call_openai(
         provider_name="openai",
         scope=scope,
         original_canvas_json=original_canvas_json,
+        reference_image=reference_image,
     )
 
 
@@ -530,6 +609,7 @@ def _call_groq(
     model: str,
     scope: str = "redesign",
     original_canvas_json: dict | None = None,
+    reference_image: dict | None = None,
 ) -> dict[str, Any]:
     return _call_openai_compatible(
         endpoint_url="https://api.groq.com/openai/v1/chat/completions",
@@ -540,6 +620,7 @@ def _call_groq(
         provider_name="groq",
         scope=scope,
         original_canvas_json=original_canvas_json,
+        reference_image=reference_image,
     )
 
 
@@ -551,6 +632,7 @@ def _call_mistral(
     model: str,
     scope: str = "redesign",
     original_canvas_json: dict | None = None,
+    reference_image: dict | None = None,
 ) -> dict[str, Any]:
     return _call_openai_compatible(
         endpoint_url="https://api.mistral.ai/v1/chat/completions",
@@ -561,6 +643,7 @@ def _call_mistral(
         provider_name="mistral",
         scope=scope,
         original_canvas_json=original_canvas_json,
+        reference_image=reference_image,
     )
 
 
@@ -572,6 +655,7 @@ def _call_cerebras(
     model: str,
     scope: str = "redesign",
     original_canvas_json: dict | None = None,
+    reference_image: dict | None = None,
 ) -> dict[str, Any]:
     max_tokens = getattr(settings, "CEREBRAS_MAX_TOKENS", 4096)
     return _call_openai_compatible(
@@ -584,6 +668,7 @@ def _call_cerebras(
         max_tokens=max_tokens,
         scope=scope,
         original_canvas_json=original_canvas_json,
+        reference_image=reference_image,
     )
 
 
@@ -650,13 +735,28 @@ def _normalize_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return normalized
 
 
-def _patch_prompt(*, scope: str, dual_side: bool) -> str:
+def _patch_prompt(*, scope: str, dual_side: bool, image_present: bool = False) -> str:
     dual_block = ""
     if dual_side:
         dual_block = """
 Dual-side mode is ON for this turn:
 - The customer has requested a change that applies to the active side only. Do not modify objects on the other side.
 """
+
+    image_note = ""
+    if image_present:
+        image_note = """
+A reference image is attached to this turn. Use it as design guidance:
+- Extract relevant characteristics: colors, typography, patterns, composition,
+  decorative elements.
+- Do NOT reproduce the entire photograph, the model wearing it, the physical
+  garment shape, or the background.
+- Adapt the extracted characteristics to the current Blytz garment template
+  and print-area constraints.
+- Preserve the existing design elements unless the customer explicitly asked
+  for a redesign.
+"""
+
     if scope == "text":
         return f"""You are Blytz's text-adjustment assistant. Do not generate new canvas JSON.
 
@@ -685,6 +785,7 @@ Return ONLY a single JSON object with this exact shape:
 
 {dual_block}
 
+{image_note}
 Allowed properties for this mode, listed explicitly: text, fontSize, fontFamily, fontWeight, fontStyle, fill, stroke.
 - Every blytzId must reference a text, IText, or textbox object in current_canvas. Do not patch rectangles, circles, ellipses, paths, lines, polygons, or images.
 - Do not change left, top, width, height, angle, scaleX, scaleY, type, or any property not in the allowed list above.
@@ -720,6 +821,7 @@ Return ONLY a single JSON object with this exact shape:
 
 {dual_block}
 
+{image_note}
 Hard rules:
 - Every blytzId must be copied verbatim from an object in current_canvas.
 - Only fill and stroke may be changed. Do not change left, top, width, height, angle, scaleX, scaleY, type, text, fontSize, fontFamily, fontWeight, or any other property.
@@ -812,6 +914,7 @@ def suggest_design_candidates(
     dual_side: bool = False,
     repair_hint: str | None = None,
     scope: str = "redesign",
+    reference_image: dict | None = None,
 ) -> dict[str, Any]:
     """
     Call Gemini or OpenAI and return {message, suggestions, usage, dual_side}.
@@ -841,10 +944,11 @@ def suggest_design_candidates(
     if scope not in ("redesign", "color", "text"):
         raise AIDesignError("Unsupported scope", code="ai_validation")
 
+    image_present = reference_image is not None
     if scope == "redesign":
-        system_prompt = _system_prompt(dual_side=dual_side)
+        system_prompt = _system_prompt(dual_side=dual_side, image_present=image_present)
     else:
-        system_prompt = _patch_prompt(scope=scope, dual_side=dual_side)
+        system_prompt = _patch_prompt(scope=scope, dual_side=dual_side, image_present=image_present)
 
     if provider == "openai":
         api_key = (getattr(settings, "OPENAI_API_KEY", "") or "").strip()
@@ -863,6 +967,7 @@ def suggest_design_candidates(
             model=model,
             scope=scope,
             original_canvas_json=canvas_json,
+            reference_image=reference_image,
         )
         res["dual_side"] = bool(dual_side)
         return res
@@ -884,6 +989,7 @@ def suggest_design_candidates(
             model=model,
             scope=scope,
             original_canvas_json=canvas_json,
+            reference_image=reference_image,
         )
         res["dual_side"] = bool(dual_side)
         return res
@@ -905,6 +1011,7 @@ def suggest_design_candidates(
             model=model,
             scope=scope,
             original_canvas_json=canvas_json,
+            reference_image=reference_image,
         )
         res["dual_side"] = bool(dual_side)
         return res
@@ -926,6 +1033,30 @@ def suggest_design_candidates(
             model=model,
             scope=scope,
             original_canvas_json=canvas_json,
+            reference_image=reference_image,
+        )
+        res["dual_side"] = bool(dual_side)
+        return res
+    if provider == "deepseek":
+        api_key = (getattr(settings, "DEEPSEEK_API_KEY", "") or "").strip()
+        if not api_key:
+            raise AIDesignError(
+                "AI suggestions are unavailable (no DeepSeek API key configured).",
+                code="ai_unavailable",
+            )
+        model = (getattr(settings, "DEEPSEEK_MODEL", "") or "deepseek-flash").strip()
+        base_url = (getattr(settings, "DEEPSEEK_BASE_URL", "") or "https://api.deepseek.com/v1").strip()
+        res = _call_openai_compatible(
+            system_prompt=system_prompt,
+            user_payload=user_payload,
+            api_key=api_key,
+            model=model,
+            endpoint_url=f"{base_url.rstrip('/')}/chat/completions",
+            provider_name="deepseek",
+            max_tokens=32768,
+            scope=scope,
+            original_canvas_json=canvas_json,
+            reference_image=reference_image,
         )
         res["dual_side"] = bool(dual_side)
         return res
@@ -938,24 +1069,34 @@ def suggest_design_candidates(
             code="ai_unavailable",
         )
 
-    model = (
-        getattr(settings, "GEMINI_MODEL", "") or "gemini-3.5-flash-lite"
-    ).strip() or "gemini-3.5-flash-lite"
+    if scope == "redesign":
+        model = (getattr(settings, "GEMINI_REDESIGN_MODEL", "") or "gemini-3.6-flash").strip() or "gemini-3.6-flash"
+    else:
+        model = (getattr(settings, "GEMINI_MODEL", "") or "gemini-3.5-flash-lite").strip() or "gemini-3.5-flash-lite"
+
+    user_parts: list[dict[str, Any]] = [
+        {
+            "text": (
+                "Customer request and structured garment/print context "
+                "(JSON). Prefer print_areas; slight overflow OK.\n"
+                + json.dumps(user_payload, ensure_ascii=False)
+            )
+        }
+    ]
+    if reference_image is not None:
+        user_parts.append({
+            "inlineData": {
+                "mimeType": reference_image["mime_type"],
+                "data": reference_image["data"],
+            }
+        })
 
     body = {
         "systemInstruction": {"parts": [{"text": system_prompt}]},
         "contents": [
             {
                 "role": "user",
-                "parts": [
-                    {
-                        "text": (
-                            "Customer request and structured garment/print context "
-                            "(JSON). Prefer print_areas; slight overflow OK.\n"
-                            + json.dumps(user_payload, ensure_ascii=False)
-                        )
-                    }
-                ],
+                "parts": user_parts,
             }
         ],
         "generationConfig": {
@@ -975,10 +1116,28 @@ def suggest_design_candidates(
         headers={"Content-Type": "application/json"},
         method="POST",
     )
+    import time
+    max_retries = 3
+    last_exception = None
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            raw = resp.read().decode("utf-8")
-            status = getattr(resp, "status", 200)
+        for attempt in range(max_retries):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    raw = resp.read().decode("utf-8")
+                    status = getattr(resp, "status", 200)
+                break  # success, exit loop
+            except urllib.error.HTTPError as exc:
+                if exc.code == 503 and attempt < max_retries - 1:
+                    last_exception = exc
+                    time.sleep(2 ** attempt)
+                    continue
+                raise exc
+            except (TimeoutError, socket.timeout) as exc:
+                if attempt < max_retries - 1:
+                    last_exception = exc
+                    time.sleep(2 ** attempt)
+                    continue
+                raise exc
     except (TimeoutError, socket.timeout) as exc:
         logger.warning("ai_suggest gemini_timeout timeout_seconds=%s", timeout)
         raise AIDesignError(

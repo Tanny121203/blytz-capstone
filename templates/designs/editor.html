@@ -391,6 +391,7 @@ border-radius: 14px;
      data-submit-url="{% url 'design_submit' design.pk %}"
      data-ai-suggest-url="{% url 'design_ai_suggest' design.pk %}"
      data-ai-suggest-enabled="{% if ai_suggest_enabled %}1{% else %}0{% endif %}"
+     data-ai-vision-enabled="{% if ai_vision_enabled %}1{% else %}0{% endif %}"
      data-remove-bg-client="1"
      data-payment-window-minutes="{{ payment_window_minutes }}"
      data-proof-max-mb="{{ PROOF_MAX_UPLOAD_MB }}"
@@ -856,14 +857,37 @@ border-radius: 14px;
                   rows="2"
                   placeholder="Describe a design idea…"
                   class="block w-full rounded-md border border-border bg-canvas px-3 py-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"></textarea>
-        <div class="mt-2 flex items-center justify-between gap-2">
-          <p class="text-xs text-ink-subtle">Enter to send · Shift+Enter for a new line</p>
-          <button type="submit"
-                  data-ai-send
-                  class="inline-flex min-h-11 items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40">
-            Send
-          </button>
-        </div>
+    <div data-ai-attachment-preview class="mt-2 hidden items-center gap-2 rounded-md border border-border bg-surface p-2">
+      <img data-ai-attachment-thumb alt="Reference image preview"
+           class="h-12 w-12 rounded border border-border object-cover">
+      <span class="text-xs text-ink-muted">Reference image attached</span>
+      <button type="button" data-ai-attachment-remove
+              class="ml-auto text-xs text-ink-muted hover:text-ink"
+              aria-label="Remove attached image">Remove</button>
+    </div>
+
+    <div class="mt-2 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <button type="button" data-ai-attach hidden
+                aria-label="Attach reference image"
+                title="Attach reference image"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-canvas text-ink-muted hover:text-ink hover:bg-surface">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+               width="16" height="16" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+          </svg>
+        </button>
+        <input type="file" data-ai-attach-input
+               accept="image/png,image/jpeg,image/webp"
+               class="sr-only" tabindex="-1" aria-hidden="true">
+        <p class="text-xs text-ink-subtle">Enter to send · Shift+Enter for a new line</p>
+      </div>
+      <button type="submit" data-ai-send
+              class="inline-flex min-h-11 items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40">
+        Send
+      </button>
+    </div>
       </form>
     </aside>
   </div>

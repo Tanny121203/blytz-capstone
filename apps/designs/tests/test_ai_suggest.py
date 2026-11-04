@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import base64
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -11,7 +12,8 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.designs.models import Design
-from services.ai_design import AIDesignError
+from services.ai_design import AIDesignError, vision_configured, suggest_design_candidates
+from apps.designs.ai_suggest import validate_reference_image, detect_scope, AISuggestValidationError
 
 User = get_user_model()
 
@@ -502,6 +504,7 @@ class AISuggestGeminiClientUnitTests(TestCase):
                 message="Add red text TEST",
                 canvas_json={},
                 active_side="front",
+                scope="text",
             )
 
         self.assertEqual(len(result["suggestions"]), 2)
@@ -509,6 +512,18 @@ class AISuggestGeminiClientUnitTests(TestCase):
         self.assertIn("/models/gemini-3.5-flash-lite:generateContent", req.full_url)
         self.assertNotIn("gemini-2.5-flash", req.full_url)
         self.assertNotIn("gemini-2.0-flash", req.full_url)
+
+        with patch("services.ai_design.urllib.request.urlopen", return_value=_Resp()) as mock_open:
+            result = suggest_design_candidates(
+                message="Redesign shirt",
+                canvas_json={},
+                active_side="front",
+                scope="redesign",
+            )
+
+        self.assertEqual(len(result["suggestions"]), 2)
+        req = mock_open.call_args[0][0]
+        self.assertIn("/models/gemini-3.6-flash:generateContent", req.full_url)
 
 
 @override_settings(
@@ -1444,3 +1459,284 @@ class AISuggestScopeStage1BTests(TestCase):
         self.assertTrue(data["ok"])
         self.assertEqual(len(data["suggestions"]), 2)
         self.assertEqual(data["suggestions"][0]["canvasJSON"], data["suggestions"][1]["canvasJSON"])
+
+
+class AISuggestStage2VisionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="visionuser@example.com", password="password", role=User.Role.CUSTOMER)
+        self.client.force_login(self.user)
+        self.design = Design.objects.create(
+            owner=self.user,
+            title="Vision Test Design",
+            garment_template="tee",
+            garment_color="white",
+            canvas_json={
+                "schema_version": 1,
+                "width": 800,
+                "height": 800,
+                "canvas": {
+                    "version": "6.6.1",
+                    "objects": [
+                        {
+                            "type": "Rect",
+                            "blytzId": "obj-1",
+                            "left": 300,
+                            "top": 280,
+                            "width": 100,
+                            "height": 100,
+                            "fill": "#000",
+                        }
+                    ],
+                },
+            },
+        )
+        self.url = reverse("design_ai_suggest", kwargs={"pk": self.design.pk})
+
+    def test_validate_reference_image_rejects_non_dict(self):
+        with self.assertRaises(AISuggestValidationError):
+            validate_reference_image("not-a-dict")
+
+    def test_validate_reference_image_rejects_bad_mime(self):
+        with self.assertRaises(AISuggestValidationError):
+            validate_reference_image({"data": "Zm9v", "mime_type": "image/gif"})
+
+    def test_validate_reference_image_rejects_oversized_base64(self):
+        big_data = base64.b64encode(b"A" * (6 * 1024 * 1024)).decode("ascii")
+        with self.assertRaises(AISuggestValidationError):
+            validate_reference_image({"data": big_data, "mime_type": "image/png"})
+
+    def test_validate_reference_image_rejects_magic_byte_mismatch(self):
+        jpeg_bytes = b"\xff\xd8\xff" + b"\x00" * 100
+        data = base64.b64encode(jpeg_bytes).decode("ascii")
+        with self.assertRaises(AISuggestValidationError):
+            validate_reference_image({"data": data, "mime_type": "image/png"})
+
+    def _make_valid_image_data(self, fmt="PNG"):
+        from PIL import Image
+        import io
+        img = Image.new("RGB", (10, 10), color="red")
+        buf = io.BytesIO()
+        img.save(buf, format=fmt)
+        return base64.b64encode(buf.getvalue()).decode("ascii")
+
+    def test_validate_reference_image_accepts_valid_png(self):
+        data = self._make_valid_image_data("PNG")
+        res = validate_reference_image({"data": data, "mime_type": "image/png"})
+        self.assertEqual(res["mime_type"], "image/png")
+
+    def test_validate_reference_image_accepts_valid_jpeg(self):
+        data = self._make_valid_image_data("JPEG")
+        res = validate_reference_image({"data": data, "mime_type": "image/jpeg"})
+        self.assertEqual(res["mime_type"], "image/jpeg")
+
+    @override_settings(AI_DESIGN_PROVIDER="gemini", GEMINI_API_KEY="")
+    def test_vision_configured_false_when_no_gemini_key(self):
+        self.assertFalse(vision_configured())
+
+    @override_settings(AI_DESIGN_PROVIDER="openai", OPENAI_API_KEY="dummy")
+    def test_vision_configured_false_when_provider_is_openai(self):
+        self.assertFalse(vision_configured())
+
+    @override_settings(AI_DESIGN_PROVIDER="gemini", GEMINI_API_KEY="dummy")
+    def test_vision_configured_true_when_gemini_key_and_provider(self):
+        self.assertTrue(vision_configured())
+
+    def test_detect_scope_use_this_font_returns_text(self):
+        self.assertEqual(detect_scope("use this font from the reference"), "text")
+
+    def test_detect_scope_typeface_returns_text(self):
+        self.assertEqual(detect_scope("change the typeface to match"), "text")
+
+    @override_settings(AI_DESIGN_PROVIDER="cerebras", CEREBRAS_API_KEY="dummy")
+    @patch("apps.designs.views.vision_configured", return_value=False)
+    def test_view_rejects_image_when_vision_disabled(self, mock_vision):
+        response = self.client.post(
+            self.url,
+            json.dumps({
+                "message": "test",
+                "reference_image": {"data": "Zm9v", "mime_type": "image/png"}
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "ai_validation")
+
+    @override_settings(AI_DESIGN_PROVIDER="gemini", GEMINI_API_KEY="dummy")
+    @patch("apps.designs.views.vision_configured", return_value=True)
+    def test_view_rejects_invalid_image_when_vision_enabled(self, mock_vision):
+        response = self.client.post(
+            self.url,
+            json.dumps({
+                "message": "test",
+                "reference_image": {"data": "Zm9v", "mime_type": "image/gif"}
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "bad_request")
+
+    @override_settings(AI_DESIGN_PROVIDER="gemini", GEMINI_API_KEY="dummy")
+    @patch("apps.designs.views.vision_configured", return_value=True)
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_view_passes_reference_image_to_suggest(self, mock_suggest, mock_vision):
+        b64 = self._make_valid_image_data("PNG")
+        mock_suggest.return_value = {
+            "message": "Here are designs",
+            "suggestions": [
+                {
+                    "id": "c1",
+                    "label": "Option 1",
+                    "description": "Desc 1",
+                    "canvasJSON": VALID_CANDIDATE_A,
+                },
+                {
+                    "id": "c2",
+                    "label": "Option 2",
+                    "description": "Desc 2",
+                    "canvasJSON": VALID_CANDIDATE_A,
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({
+                "message": "redesign",
+                "reference_image": {"data": b64, "mime_type": "image/png"}
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        mock_suggest.assert_called_once()
+        _, kwargs = mock_suggest.call_args
+        self.assertIsNotNone(kwargs.get("reference_image"))
+        self.assertEqual(kwargs["reference_image"]["mime_type"], "image/png")
+
+    @override_settings(AI_DESIGN_PROVIDER="gemini", GEMINI_API_KEY="dummy")
+    @patch("apps.designs.views.vision_configured", return_value=True)
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_view_passes_none_when_no_image(self, mock_suggest, mock_vision):
+        mock_suggest.return_value = {
+            "message": "Here are designs",
+            "suggestions": [
+                {
+                    "id": "c1",
+                    "label": "Option 1",
+                    "description": "Desc 1",
+                    "canvasJSON": VALID_CANDIDATE_A,
+                },
+                {
+                    "id": "c2",
+                    "label": "Option 2",
+                    "description": "Desc 2",
+                    "canvasJSON": VALID_CANDIDATE_A,
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({
+                "message": "redesign"
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        mock_suggest.assert_called_once()
+        _, kwargs = mock_suggest.call_args
+        self.assertIsNone(kwargs.get("reference_image"))
+
+    @override_settings(AI_DESIGN_PROVIDER="gemini", GEMINI_API_KEY="dummy")
+    @patch("apps.designs.views.vision_configured", return_value=True)
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_image_with_color_scope_preserves_object_count(self, mock_suggest, mock_vision):
+        b64 = self._make_valid_image_data("PNG")
+        mock_suggest.return_value = {
+            "scope": "color",
+            "message": "Color adjustment",
+            "suggestions": [
+                {
+                    "id": "c1",
+                    "label": "Option 1",
+                    "description": "Red",
+                    "patches": [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}],
+                },
+                {
+                    "id": "c2",
+                    "label": "Option 2",
+                    "description": "Red",
+                    "patches": [{"blytzId": "obj-1", "property": "fill", "value": "#ff0000"}],
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({
+                "message": "use these colors",
+                "canvas_json": self.design.canvas_json,
+                "reference_image": {"data": b64, "mime_type": "image/png"}
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(len(data["suggestions"]), 2)
+        self.assertEqual(len(data["suggestions"][0]["canvasJSON"]["canvas"]["objects"]), 1)
+
+    @override_settings(AI_DESIGN_PROVIDER="gemini", GEMINI_API_KEY="dummy")
+    @patch("apps.designs.views.vision_configured", return_value=True)
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_image_with_redesign_scope_returns_full_canvas(self, mock_suggest, mock_vision):
+        b64 = self._make_valid_image_data("PNG")
+        mock_suggest.return_value = {
+            "scope": "redesign",
+            "message": "Redesign",
+            "suggestions": [
+                {
+                    "id": "c1",
+                    "label": "Option 1",
+                    "description": "Desc 1",
+                    "canvasJSON": VALID_CANDIDATE_A,
+                },
+                {
+                    "id": "c2",
+                    "label": "Option 2",
+                    "description": "Desc 2",
+                    "canvasJSON": VALID_CANDIDATE_A,
+                },
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            json.dumps({
+                "message": "redesign inspired by this",
+                "reference_image": {"data": b64, "mime_type": "image/png"}
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(len(data["suggestions"]), 2)
+        self.assertIn("canvasJSON", data["suggestions"][0])
+
+    @override_settings(AI_DESIGN_PROVIDER="groq", GROQ_API_KEY="dummy")
+    def test_groq_rejects_image_input(self):
+        with self.assertRaises(AIDesignError) as ctx:
+            suggest_design_candidates(
+                message="test",
+                canvas_json=self.design.canvas_json,
+                active_side="front",
+                reference_image={"data": "Zm9v", "mime_type": "image/png"}
+            )
+        self.assertEqual(ctx.exception.code, "ai_validation")
+
+    @override_settings(AI_DESIGN_PROVIDER="cerebras", CEREBRAS_API_KEY="dummy")
+    def test_cerebras_rejects_image_input(self):
+        with self.assertRaises(AIDesignError) as ctx:
+            suggest_design_candidates(
+                message="test",
+                canvas_json=self.design.canvas_json,
+                active_side="front",
+                reference_image={"data": "Zm9v", "mime_type": "image/png"}
+            )
+        self.assertEqual(ctx.exception.code, "ai_validation")

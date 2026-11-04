@@ -182,10 +182,17 @@ AI_DESIGN_PROVIDER = (env("AI_DESIGN_PROVIDER", default="gemini") or "gemini").s
 
 GEMINI_API_KEY = (env("GEMINI_API_KEY", default="") or "").strip()
 GEMINI_MODEL = (env("GEMINI_MODEL", default="gemini-3.5-flash-lite") or "").strip()
+GEMINI_REDESIGN_MODEL = (
+    env("GEMINI_REDESIGN_MODEL", default="gemini-3.6-flash") or "gemini-3.6-flash"
+).strip()
 GEMINI_REQUEST_TIMEOUT = env.int("GEMINI_REQUEST_TIMEOUT", default=120)
 
 OPENAI_API_KEY = (env("OPENAI_API_KEY", default="") or "").strip()
 OPENAI_MODEL = (env("OPENAI_MODEL", default="gpt-4o-mini") or "").strip()
+
+DEEPSEEK_API_KEY = (env("DEEPSEEK_API_KEY", default="") or "").strip()
+DEEPSEEK_MODEL = (env("DEEPSEEK_MODEL", default="deepseek-flash") or "").strip()
+DEEPSEEK_BASE_URL = (env("DEEPSEEK_BASE_URL", default="https://api.deepseek.com/v1") or "").strip()
 
 GROQ_API_KEY = (env("GROQ_API_KEY", default="") or "").strip()
 GROQ_MODEL = (env("GROQ_MODEL", default="llama-3.3-70b-versatile") or "").strip()

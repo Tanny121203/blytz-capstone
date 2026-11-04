@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 from apps.accounts.decorators import customer_required
 from apps.orders.models import Order, Payment, PaymentChannel
 from apps.sales.models import Lead
-from services.ai_design import AIDesignError, gemini_configured, suggest_design_candidates
+from services.ai_design import AIDesignError, gemini_configured, suggest_design_candidates, vision_configured
 
 from .ai_suggest import (
     AI_BOUNDS_MAX_RETRIES,
@@ -24,6 +24,7 @@ from .ai_suggest import (
     finalize_scope_result,
     record_rate_limit_success,
     should_generate_dual_side,
+    validate_reference_image,
     validate_two_candidates,
 )
 from .forms import DesignSaveForm, DesignSubmitForm
@@ -118,6 +119,7 @@ def design_editor(request, pk):
             "already_submitted": design.is_submitted,
             "canvas_json_initial": json.dumps(design.canvas_json or {}),
             "ai_suggest_enabled": gemini_configured(),
+            "ai_vision_enabled": vision_configured(),
         },
     )
 
@@ -389,6 +391,7 @@ def _parse_ai_suggest_body(request):
         # Client hints ignored when Design row has values (see view).
         "garment_template_hint": str(payload.get("garment_template") or "").strip(),
         "garment_color_hint": str(payload.get("garment_color") or "").strip(),
+        "reference_image": payload.get("reference_image") or None,
     }, None
 
 
@@ -458,6 +461,25 @@ def design_ai_suggest(request, pk):
 
     scope = detect_scope(parsed["message"])
 
+    reference_image = None
+    raw_image = parsed.get("reference_image")
+    if raw_image:
+        if not vision_configured():
+            return JsonResponse(
+                {"ok": False, "code": "ai_validation",
+                 "error": "Image input is not available for the current provider.",
+                 "message": "Image input is not available for the current provider."},
+                status=400,
+            )
+        try:
+            reference_image = validate_reference_image(raw_image)
+        except AISuggestValidationError as exc:
+            msg = getattr(exc, "message", None) or str(exc) or "Invalid image."
+            return JsonResponse(
+                {"ok": False, "code": "bad_request", "error": msg},
+                status=400,
+            )
+
     result = None
     suggestions = None
     last_validation_error = None
@@ -477,6 +499,7 @@ def design_ai_suggest(request, pk):
                 dual_side=dual_side,
                 repair_hint=repair_hint,
                 scope=scope,
+                reference_image=reference_image,
             )
             try:
                 result = finalize_scope_result(
