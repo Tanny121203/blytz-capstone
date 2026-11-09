@@ -1,70 +1,211 @@
-<header class="sticky top-0 z-50 border-b border-border bg-canvas" style="padding-top:env(safe-area-inset-top)">
-  <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-    <a href="{% url 'home' %}" class="font-display text-xl text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Blytz</a>
-    <button type="button" class="nav-hamburger inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border" data-nav-open="public-nav-drawer" aria-label="Open menu">
-      <span aria-hidden="true">☰</span>
-    </button>
-    <nav class="nav-desktop flex-wrap items-center justify-end gap-1 text-sm sm:gap-3" aria-label="Public">
-      <a href="{% url 'home' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Home</a>
+{# Fixed navbar — more reliable than sticky in flex layouts #}
+<header class="fixed top-0 left-0 right-0 z-50 bg-black border-b border-[#1F1F1F]" style="padding-top:env(safe-area-inset-top)">
+  <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 h-[64px] sm:h-[72px]">
+    <!-- Logo (left) -->
+    <div class="flex-shrink-0">
+      {% include "partials/logo.html" with size="sm" %}
+    </div>
+
+    <!-- Center navigation (desktop only) -->
+    <nav class="hidden md:flex flex-1 justify-center items-center gap-8" aria-label="Public" id="blytz-main-nav">
+      <a href="{% url 'home' %}"
+         class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 text-white hover:text-accent"
+         data-nav-section="hero">Home</a>
+
       {% if user.is_authenticated and user.is_customer %}
-        <a href="{% url 'app_home' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Dashboard</a>
-        <a href="{% url 'design_list' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">My Designs</a>
-        <a href="{% url 'order_list' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">My Orders</a>
+        <a href="{% url 'app_home' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'app_home' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Dashboard</a>
+        <a href="{% url 'design_list' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'design_list' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">My Designs</a>
+        <a href="{% url 'order_list' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'order_list' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">My Orders</a>
         {% if messenger_url %}
-        <a href="{{ messenger_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink" aria-label="Messenger">
+        <a href="{{ messenger_url }}" target="_blank" rel="noopener noreferrer" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] text-white hover:text-accent transition-colors duration-200" aria-label="Messenger">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.1 2 11.2c0 2.9 1.4 5.5 3.7 7.2V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.52 0 10-4.1 10-9.2S17.52 2 12 2zm1.1 12.4-2.5-2.7-4.9 2.7 5.4-5.7 2.6 2.7 4.8-2.7-5.4 5.7z"/></svg>
         </a>
         {% endif %}
-        <a href="{% url 'account_profile' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Profile</a>
-        <a href="{% url 'account_logout' %}" class="inline-flex min-h-11 items-center rounded-md border border-border-strong px-2.5 py-1.5 text-ink">Log out</a>
+        <a href="{% url 'account_profile' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'account_profile' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Profile</a>
+
       {% elif user.is_authenticated and user.is_staff_role %}
-        <a href="{% url 'home' %}#how-it-works" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">How it works</a>
-        <a href="{% url 'home' %}#gallery" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Gallery</a>
-        <a href="{% url 'home' %}#faq" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">FAQ</a>
-        <a href="{% url 'home' %}#contact" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Contact</a>
-        <a href="{% url 'staff_home' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Staff</a>
-        <a href="{% url 'account_logout' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Log out</a>
+        <a href="#gallery"     class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 text-white hover:text-accent" data-nav-section="gallery">Gallery</a>
+        <a href="#how-it-works" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 text-white hover:text-accent" data-nav-section="how-it-works">How it works</a>
+        <a href="#faq"         class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 text-white hover:text-accent" data-nav-section="faq">FAQ</a>
+        <a href="#contact"     class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 text-white hover:text-accent" data-nav-section="contact">Contact</a>
+        <a href="{% url 'staff_home' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'staff_home' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Staff</a>
+
       {% else %}
-        <a href="{% url 'home' %}#how-it-works" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">How it works</a>
-        <a href="{% url 'home' %}#gallery" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Gallery</a>
-        <a href="{% url 'home' %}#faq" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">FAQ</a>
-        <a href="{% url 'home' %}#contact" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Contact</a>
-        <a href="{% url 'account_login' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-ink-muted hover:text-ink">Log in</a>
-        {% include "components/button.html" with label="Sign up" href="/accounts/signup/" size="sm" variant="primary" %}
+        <a href="#gallery"     class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 text-white hover:text-accent" data-nav-section="gallery">Gallery</a>
+        <a href="#how-it-works" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 text-white hover:text-accent" data-nav-section="how-it-works">How it works</a>
+        <a href="#faq"         class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 text-white hover:text-accent" data-nav-section="faq">FAQ</a>
+        <a href="#contact"     class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 text-white hover:text-accent" data-nav-section="contact">Contact</a>
       {% endif %}
     </nav>
+
+    <!-- Right side (auth links) -->
+    <div class="flex items-center gap-4">
+      {% if user.is_authenticated %}
+        <a href="{% url 'account_logout' %}" class="inline-flex items-center rounded-full border border-white px-4 py-1.5 text-xs font-semibold text-white hover:bg-bg-elevated transition-colors">Log out</a>
+      {% else %}
+        <a href="{% url 'account_login' %}" class="hidden sm:inline-flex blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'account_login' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Log in</a>
+        {% include "components/button.html" with label="Sign up" href="/accounts/signup/" size="sm" variant="primary" %}
+      {% endif %}
+
+      <!-- Mobile menu button -->
+      <button type="button" class="md:hidden inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border text-text-primary" data-nav-open="public-nav-drawer" aria-label="Open menu">
+        <span aria-hidden="true">☰</span>
+      </button>
+    </div>
   </div>
 </header>
+
+{# Spacer — pushes content below the fixed navbar #}
+<div class="h-[64px] sm:h-[72px]" aria-hidden="true"></div>
+
+{# Scroll-spy + section offset styles #}
+<style>
+  #gallery,
+  #how-it-works,
+  #faq,
+  #contact {
+    scroll-margin-top: 88px;
+  }
+</style>
+
+{# Scroll-spy: highlights the nav link matching the visible section #}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  var heroSection = document.getElementById('how-it-works');
+  if (!heroSection) return;
+
+  var NAV_HEADER_HEIGHT = 88;
+  var ACTIVE_CLASSES    = ['text-accent', 'border-b-2', 'border-accent', 'pb-1'];
+  var INACTIVE_CLASSES  = ['text-white'];
+
+  var navLinks = document.querySelectorAll('#blytz-main-nav .blytz-nav-link[data-nav-section]');
+  if (!navLinks.length) return;
+
+  var sectionToLink = {};
+  navLinks.forEach(function (link) {
+    var sectionId = link.getAttribute('data-nav-section');
+    var section   = document.getElementById(sectionId);
+    if (section) sectionToLink[sectionId] = link;
+  });
+
+  var sectionIds = Object.keys(sectionToLink);
+  if (!sectionIds.length) return;
+
+  var visibleSections = {};
+  var isScrollingFromClick = false;
+  var scrollTimeout;
+
+  function setActive(sectionId) {
+    navLinks.forEach(function (link) {
+      ACTIVE_CLASSES.forEach(function (c) { link.classList.remove(c); });
+      INACTIVE_CLASSES.forEach(function (c) { link.classList.add(c); });
+    });
+    var activeLink = sectionToLink[sectionId];
+    if (activeLink) {
+      INACTIVE_CLASSES.forEach(function (c) { activeLink.classList.remove(c); });
+      ACTIVE_CLASSES.forEach(function (c) { activeLink.classList.add(c); });
+    }
+  }
+
+  function computeActiveSection() {
+    for (var i = 0; i < sectionIds.length; i++) {
+      if (visibleSections[sectionIds[i]]) return sectionIds[i];
+    }
+    return 'hero';
+  }
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      visibleSections[entry.target.id] = entry.isIntersecting;
+    });
+    
+    // Only update active state if not scrolling from a click
+    if (!isScrollingFromClick) {
+      setActive(computeActiveSection());
+    }
+  }, {
+    rootMargin: '-' + NAV_HEADER_HEIGHT + 'px 0px -40% 0px',
+    threshold: 0
+  });
+
+  sectionIds.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+
+  var hero = document.getElementById('hero') || document.querySelector('section');
+  if (hero && !sectionToLink['hero']) {
+    hero.id = hero.id || 'hero';
+    sectionToLink['hero'] = navLinks[0];
+    sectionIds.unshift('hero');
+    observer.observe(hero);
+  }
+
+  if (window.location.hash) {
+    var hashId = window.location.hash.substring(1);
+    if (sectionToLink[hashId]) {
+      setTimeout(function () { setActive(hashId); }, 150);
+    }
+  } else {
+    setActive('hero');
+  }
+
+  navLinks.forEach(function (link) {
+    link.addEventListener('click', function () {
+      var sectionId = link.getAttribute('data-nav-section');
+      if (sectionId && sectionToLink[sectionId]) {
+        setActive(sectionId);
+        
+        // Lock the active state temporarily to prevent observer from overriding during scroll
+        isScrollingFromClick = true;
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(function () {
+          isScrollingFromClick = false;
+        }, 800); // 800ms allows smooth scroll to complete
+      }
+    });
+  });
+
+  window.addEventListener('hashchange', function () {
+    var hashId = window.location.hash.substring(1);
+    if (sectionToLink[hashId]) setActive(hashId);
+  });
+});
+</script>
+
+<!-- Mobile drawer -->
 <div id="public-nav-drawer" class="nav-drawer">
   <div class="nav-drawer-backdrop" data-nav-close></div>
-  <div class="nav-drawer-panel" role="dialog" aria-label="Menu">
-    <div class="mb-4 flex items-center justify-between">
-      <span class="font-display text-lg">Blytz</span>
-      <button type="button" class="inline-flex min-h-11 min-w-11 items-center justify-center" data-nav-close aria-label="Close">×</button>
+  <div class="nav-drawer-panel bg-bg-surface" role="dialog" aria-label="Menu">
+    <div class="mb-6 flex items-center justify-between px-4 py-4 border-b border-border">
+      <span class="font-display text-lg text-text-primary">BLYTZ</span>
+      <button type="button" class="inline-flex min-h-11 min-w-11 items-center justify-center text-text-primary" data-nav-close aria-label="Close">×</button>
     </div>
-    <nav class="flex flex-col gap-1 text-sm">
-      <a href="{% url 'home' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Home</a>
+    <nav class="flex flex-col gap-1 px-4 text-sm">
+      <a href="{% url 'home' %}" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>Home</a>
       {% if user.is_authenticated and user.is_customer %}
-        <a href="{% url 'app_home' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Dashboard</a>
-        <a href="{% url 'design_list' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>My Designs</a>
-        <a href="{% url 'order_list' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>My Orders</a>
-        {% if messenger_url %}<a href="{{ messenger_url }}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Messenger</a>{% endif %}
-        <a href="{% url 'account_profile' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Profile</a>
-        <a href="{% url 'account_logout' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Log out</a>
+        <a href="{% url 'app_home' %}" class="min-h-11 rounded-md px-2 py-3 text-accent" data-nav-close>Dashboard</a>
+        <a href="{% url 'design_list' %}" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>My Designs</a>
+        <a href="{% url 'order_list' %}" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>My Orders</a>
+        {% if messenger_url %}<a href="{{ messenger_url }}" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>Messenger</a>{% endif %}
+        <a href="{% url 'account_profile' %}" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>Profile</a>
+        <a href="{% url 'account_logout' %}" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>Log out</a>
       {% elif user.is_authenticated and user.is_staff_role %}
-        <a href="{% url 'home' %}#how-it-works" class="min-h-11 rounded-md px-2 py-3" data-nav-close>How it works</a>
-        <a href="{% url 'home' %}#gallery" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Gallery</a>
-        <a href="{% url 'home' %}#faq" class="min-h-11 rounded-md px-2 py-3" data-nav-close>FAQ</a>
-        <a href="{% url 'home' %}#contact" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Contact</a>
-        <a href="{% url 'staff_home' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Staff</a>
-        <a href="{% url 'account_logout' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Log out</a>
+        <a href="#gallery" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>Gallery</a>
+        <a href="#how-it-works" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>How it works</a>
+        <a href="#faq" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>FAQ</a>
+        <a href="#contact" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>Contact</a>
+        <a href="{% url 'staff_home' %}" class="min-h-11 rounded-md px-2 py-3 text-accent" data-nav-close>Staff</a>
+        <a href="{% url 'account_logout' %}" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>Log out</a>
       {% else %}
-        <a href="{% url 'home' %}#how-it-works" class="min-h-11 rounded-md px-2 py-3" data-nav-close>How it works</a>
-        <a href="{% url 'home' %}#gallery" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Gallery</a>
-        <a href="{% url 'home' %}#faq" class="min-h-11 rounded-md px-2 py-3" data-nav-close>FAQ</a>
-        <a href="{% url 'home' %}#contact" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Contact</a>
-        <a href="{% url 'account_login' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Log in</a>
-        <a href="{% url 'account_signup' %}" class="min-h-11 rounded-md px-2 py-3" data-nav-close>Sign up</a>
+        <a href="#faq" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>FAQ</a>
+        <a href="#how-it-works" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>How it works</a>
+        <a href="#faq" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>FAQ</a>
+        <a href="#contact" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>Contact</a>
+        <a href="{% url 'account_login' %}" class="min-h-11 rounded-md px-2 py-3 text-text-muted hover:text-accent" data-nav-close>Log in</a>
+        <a href="{% url 'account_signup' %}" class="min-h-11 rounded-md px-2 py-3 text-accent" data-nav-close>Sign up</a>
       {% endif %}
     </nav>
   </div>

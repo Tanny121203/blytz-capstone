@@ -26,6 +26,7 @@
     committed: false,
     commitUnsub: null,
     history: [],
+    attachedImage: null,
   };
 
   function textSafe(text) {
@@ -275,6 +276,43 @@
     return !!(shell && shell.getAttribute("data-ai-suggest-enabled") === "1");
   }
 
+  function isVisionEnabled() {
+    var shell = getEditorShell();
+    return !!(shell && shell.getAttribute("data-ai-vision-enabled") === "1");
+  }
+
+  function downscaleImageToBase64(file, maxDim, quality) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        if (!w || !h) { reject(new Error("Could not read image dimensions")); return; }
+        if (w > maxDim || h > maxDim) {
+          var ratio = Math.min(maxDim / w, maxDim / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        var dataUrl = canvas.toDataURL("image/jpeg", quality || 0.85);
+        var parts = dataUrl.split(",");
+        var meta = parts[0];
+        var data = parts[1] || "";
+        var mime = (meta.match(/data:([^;]+);/) || [])[1] || "image/jpeg";
+        if (data.length * 0.75 > 4 * 1024 * 1024) {
+          reject(new Error("Image is too large after compression (max 4 MB)."));
+          return;
+        }
+        resolve({ data: data, mime_type: mime, previewUrl: dataUrl });
+      };
+      img.onerror = function () { reject(new Error("Could not read image file.")); };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   function getActiveSide() {
     try {
       if (global.BlytzEditor && typeof global.BlytzEditor.getActiveView === "function") {
@@ -321,13 +359,20 @@
             } catch (eG) {
               /* ignore */
             }
-            return {
+            var payload = {
               message: textSafe(prompt).trim(),
               canvas_json: contextJSON || {},
               active_side: getActiveSide(),
               garment_template: garment.template || "",
               garment_color: garment.color || "",
             };
+            if (state.attachedImage) {
+              payload.reference_image = {
+                data: state.attachedImage.data,
+                mime_type: state.attachedImage.mime_type,
+              };
+            }
+            return payload;
           })()
         ),
       })
@@ -811,6 +856,15 @@
           return;
         }
 
+        if (result && result.ok) {
+          // clear attachment on success
+          state.attachedImage = null;
+          var ap = qs("[data-ai-attachment-preview]");
+          var at = qs("[data-ai-attachment-thumb]");
+          if (at) at.removeAttribute("src");
+          if (ap) { ap.classList.add("hidden"); ap.classList.remove("flex"); }
+        }
+
         appendMessage(
           "assistant",
           result.message || "Here are two candidates."
@@ -880,6 +934,54 @@
   function wireUi() {
     var roots = getRoots();
     if (!panelReady(roots)) return;
+
+    var attachBtn = qs("[data-ai-attach]");
+    var attachInput = qs("[data-ai-attach-input]");
+    var attachPreview = qs("[data-ai-attachment-preview]");
+    var attachThumb = qs("[data-ai-attachment-thumb]");
+    var attachRemove = qs("[data-ai-attachment-remove]");
+
+    if (isVisionEnabled() && attachBtn && attachInput) {
+      attachBtn.hidden = false;
+      attachBtn.addEventListener("click", function () {
+        if (state.busy) return;
+        attachInput.click();
+      });
+      attachInput.addEventListener("change", function () {
+        var file = attachInput.files && attachInput.files[0];
+        attachInput.value = "";
+        if (!file) return;
+        var allowed = ["image/png", "image/jpeg", "image/webp"];
+        if (allowed.indexOf(file.type) === -1) {
+          setStatus("Reference image must be PNG, JPEG, or WebP.");
+          return;
+        }
+        downscaleImageToBase64(file, 1024, 0.85)
+          .then(function (result) {
+            state.attachedImage = result;
+            if (attachThumb) attachThumb.src = result.previewUrl;
+            if (attachPreview) {
+              attachPreview.classList.remove("hidden");
+              attachPreview.classList.add("flex");
+            }
+            setStatus("Reference image attached. It will apply to this message only.");
+          })
+          .catch(function (err) {
+            setStatus((err && err.message) || "Could not attach image.");
+          });
+      });
+    }
+    if (attachRemove) {
+      attachRemove.addEventListener("click", function () {
+        state.attachedImage = null;
+        if (attachThumb) attachThumb.removeAttribute("src");
+        if (attachPreview) {
+          attachPreview.classList.add("hidden");
+          attachPreview.classList.remove("flex");
+        }
+        setStatus("Reference image removed.");
+      });
+    }
 
     document.querySelectorAll("[data-ai-starter]").forEach(function (btn) {
       btn.addEventListener("click", function () {

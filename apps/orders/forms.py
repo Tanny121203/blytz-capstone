@@ -15,7 +15,9 @@ class OrderPaymentUploadForm(forms.Form):
         max_digits=10,
         decimal_places=2,
     )
+    
     proof_file = forms.FileField()
+    reference_number = forms.CharField(max_length=100, required=False)
 
     def clean_proof_file(self):
         return validate_and_process_proof(self.cleaned_data["proof_file"])

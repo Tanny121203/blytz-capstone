@@ -7,6 +7,7 @@
 
   var wired = false;
   var collapsed = false;
+  var forceClosed = false;
   var sheetOpen = false;
   var syncing = false;
   var rafId = 0;
@@ -1945,6 +1946,23 @@
       panel.hidden = true;
       panel.classList.remove("is-open", "is-collapsed");
       sheetOpen = false;
+      forceClosed = false; // <-- ADD THIS (resets when you click empty canvas)
+      if (pill) pill.hidden = true;
+      return;
+    }
+
+    if (forceClosed) { // <-- ADD THIS BLOCK
+      panel.hidden = true;
+      if (pill) pill.hidden = true;
+      return;
+    }
+
+    if (!panel) return;
+
+    if (!has) {
+      panel.hidden = true;
+      panel.classList.remove("is-open", "is-collapsed");
+      sheetOpen = false;
       if (pill) pill.hidden = true;
       return;
     }
@@ -1988,6 +2006,7 @@
   }
 
   function openSheet() {
+    forceClosed = false;
     if (isNarrowProps() && global.BlytzEditorTools && BlytzEditorTools.closePanel) {
       BlytzEditorTools.closePanel();
     }
@@ -2365,6 +2384,7 @@
       }
       if (e.target.closest("[data-props-close]")) {
         e.preventDefault();
+        forceClosed = true;
         if (isNarrowProps()) closeSheet();
         else {
           collapsed = true;
@@ -2385,6 +2405,7 @@
     if (!c) return;
     ["selection:created", "selection:updated", "selection:cleared"].forEach(function (ev) {
       c.on(ev, function () {
+        forceClosed = false;
         // Selection never commits / never discards AI by itself.
         if (!activeObject()) {
           sheetOpen = false;

@@ -6,6 +6,7 @@ Does not call Gemini; does not mutate Design rows.
 
 from __future__ import annotations
 
+import copy
 import json
 import re
 import time
@@ -18,6 +19,7 @@ from apps.designs.canvas_safety import CanvasSafetyError, validate_v1_envelope
 from apps.designs.forms import MAX_CANVAS_JSON_BYTES
 from apps.designs.print_area_check import artwork_overflows_print_areas
 from apps.designs.print_areas_catalog import get_print_areas, primary_print_areas
+from services.ai_design import AIDesignError
 
 # Matches client BlytzEditor.validateCanvasJSON AI rules.
 LOGICAL_SIZE = 800
@@ -52,6 +54,74 @@ class AISuggestValidationError(ValueError):
     def __init__(self, message: str):
         self.message = message
         super().__init__(message)
+
+
+def validate_reference_image(image: dict | None) -> dict | None:
+    """
+    Validate an incoming reference image. Raise AISuggestValidationError
+    (existing class) with a user-readable message on failure.
+    Return a normalized {"data": base64_str, "mime_type": mime_str}.
+    Never write to disk. Never persist.
+    """
+    if image is None:
+        return None  # caller uses `if reference_image:` so None is fine
+    if not isinstance(image, dict):
+        raise AISuggestValidationError("Reference image must be an object.")
+    data = image.get("data")
+    mime = image.get("mime_type")
+    if not isinstance(data, str) or not data:
+        raise AISuggestValidationError("Reference image data is missing.")
+    if not isinstance(mime, str):
+        raise AISuggestValidationError("Reference image mime_type is missing.")
+    mime = mime.strip().lower()
+    if mime not in ("image/png", "image/jpeg", "image/webp"):
+        raise AISuggestValidationError(
+            "Reference image must be PNG, JPEG, or WebP."
+        )
+    # Base64 decode, bounded. Cap decoded bytes at 4 MB.
+    MAX_BYTES = 4 * 1024 * 1024
+    # Reject pre-decode if the base64 string is obviously too big
+    # (base64 is ~4/3 of raw; allow 20% overhead)
+    if len(data) > int(MAX_BYTES * 1.4):
+        raise AISuggestValidationError(
+            "Reference image is too large (max 4 MB)."
+        )
+    import base64
+    try:
+        raw = base64.b64decode(data, validate=True)
+    except Exception:
+        raise AISuggestValidationError("Reference image is not valid base64.")
+    if len(raw) > MAX_BYTES:
+        raise AISuggestValidationError(
+            "Reference image is too large (max 4 MB)."
+        )
+    # Magic byte check
+    if mime == "image/png" and not raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise AISuggestValidationError("Reference image content is not PNG.")
+    if mime == "image/jpeg" and not raw.startswith(b"\xff\xd8\xff"):
+        raise AISuggestValidationError("Reference image content is not JPEG.")
+    if mime == "image/webp" and not (
+        raw[:4] == b"RIFF" and raw[8:12] == b"WEBP"
+    ):
+        raise AISuggestValidationError("Reference image content is not WebP.")
+    # Pillow verify + dimension cap
+    try:
+        from PIL import Image
+        import io
+        with Image.open(io.BytesIO(raw)) as im:
+            im.verify()
+        # Re-open because verify() closes the stream
+        with Image.open(io.BytesIO(raw)) as im:
+            w, h = im.size
+            if w > 2048 or h > 2048:
+                raise AISuggestValidationError(
+                    "Reference image dimensions must be 2048x2048 or smaller."
+                )
+    except AISuggestValidationError:
+        raise
+    except Exception:
+        raise AISuggestValidationError("Reference image is not a valid image.")
+    return {"data": data, "mime_type": mime}
 
 
 def _utf8_byte_length(value: str) -> int:
@@ -137,6 +207,332 @@ def merge_preserve_images(
     canvas["objects"] = objs
     envelope["canvas"] = canvas
     return envelope
+
+
+REDESIGN_CUES = (
+    "redesign",
+    "start over",
+    "from scratch",
+    "completely",
+    "new design",
+    "replace",
+    "add ",
+    "remove ",
+    "delete ",
+    "bigger",
+    "smaller",
+    "move ",
+    "rotate",
+    "resize",
+    "scale",
+    "make it bigger",
+    "make it smaller",
+)
+
+COLOR_CUES = (
+    "color",
+    "colour",
+    "colors",
+    "colours",
+    "palette",
+    "shade",
+    "tint",
+    "red",
+    "blue",
+    "green",
+    "yellow",
+    "orange",
+    "purple",
+    "pink",
+    "black",
+    "white",
+    "grey",
+    "gray",
+    "cyan",
+    "magenta",
+    "brown",
+    "gold",
+    "silver",
+    "teal",
+    "navy",
+    "maroon",
+    "olive",
+    "lime",
+    "violet",
+    "indigo",
+)
+
+TEXT_CUES = (
+    "change the text", "change text", "update the text", "update text",
+    "rename the text", "rename text",
+    "make it say", "make the text say", "make text say",
+    "the text should be", "the text should say", "text should be", "text should say",
+    "change the wording", "change wording",
+    "replace the text", "replace text",
+    "use this font", "use the font", "change the font",
+    "font from", "font in", "typeface",
+)
+
+TEXT_PATCHABLE_PROPERTIES = frozenset({
+    "text", "fontSize", "fontFamily", "fontWeight", "fontStyle", "fill", "stroke",
+})
+TEXT_OBJECT_TYPES = frozenset({"text", "IText", "textbox"})
+
+ELEMENT_CUES = (
+    "change the design in the middle",
+    "replace the",
+    "swap the",
+    "change the logo",
+    "change the center",
+)
+
+_HEX_COLOR_RE = re.compile(r"#[0-9a-f]{3,8}\b", re.I)
+
+
+def detect_scope(message: str) -> str:
+    msg = (message or "").lower()
+    has_element = any(cue in msg for cue in ELEMENT_CUES)
+    redesign_cues_to_check = [c for c in REDESIGN_CUES if c != "replace"] if has_element else REDESIGN_CUES
+    for cue in redesign_cues_to_check:
+        if cue in msg:
+            return "redesign"
+    if has_element:
+        return "element"
+    has_text = any(cue in msg for cue in TEXT_CUES)
+    has_color = any(cue in msg for cue in COLOR_CUES) or bool(_HEX_COLOR_RE.search(msg))
+    if has_text and has_color:
+        return "redesign"
+    if has_text:
+        return "text"
+    if has_color:
+        return "color"
+    return "redesign"
+
+
+def apply_patches(canvas_json: dict, patches: list[dict]) -> dict:
+    copied = copy.deepcopy(canvas_json)
+    objs = copied.get("canvas", {}).get("objects", [])
+    obj_map = {str(o.get("blytzId")): o for o in objs if o.get("blytzId") is not None}
+    for p in patches or []:
+        bid = str(p.get("blytzId"))
+        if bid not in obj_map:
+            raise ValueError(f"unknown blytzId: {bid}")
+        target = obj_map[bid]
+        target[p["property"]] = p["value"]
+    return copied
+
+
+def apply_element_patches(original_canvas: dict, patches: list[dict]) -> dict:
+    copied = copy.deepcopy(original_canvas)
+    canvas_obj = copied.setdefault("canvas", {})
+    objs = canvas_obj.setdefault("objects", [])
+    if not isinstance(objs, list):
+        objs = []
+        canvas_obj["objects"] = objs
+
+    import uuid
+
+    for p in patches or []:
+        if not isinstance(p, dict):
+            continue
+        action = str(p.get("action") or "").lower()
+        bid = p.get("blytzId")
+        bid_str = str(bid) if bid is not None else None
+
+        if action == "remove":
+            if bid_str is None:
+                raise ValueError("remove action requires blytzId")
+            new_objs = [
+                o for o in objs
+                if str(o.get("blytzId")) != bid_str and str(o.get("id")) != bid_str
+            ]
+            if len(new_objs) == len(objs):
+                raise ValueError(f"unknown blytzId for remove: {bid_str}")
+            objs = new_objs
+        elif action == "add":
+            new_obj = p.get("object")
+            if not isinstance(new_obj, dict):
+                raise ValueError("add action requires object dictionary")
+            obj_copy = copy.deepcopy(new_obj)
+            if not obj_copy.get("blytzId") and not obj_copy.get("id"):
+                obj_copy["blytzId"] = f"elem-{uuid.uuid4().hex[:8]}"
+            objs.append(obj_copy)
+        elif action == "replace":
+            if bid_str is None:
+                raise ValueError("replace action requires blytzId")
+            new_obj = p.get("object")
+            if not isinstance(new_obj, dict):
+                raise ValueError("replace action requires object dictionary")
+            found = False
+            new_objs = []
+            for o in objs:
+                if str(o.get("blytzId")) == bid_str or str(o.get("id")) == bid_str:
+                    found = True
+                else:
+                    new_objs.append(o)
+            if not found:
+                raise ValueError(f"unknown blytzId for replace: {bid_str}")
+            obj_copy = copy.deepcopy(new_obj)
+            if not obj_copy.get("blytzId") and not obj_copy.get("id"):
+                obj_copy["blytzId"] = f"elem-{uuid.uuid4().hex[:8]}"
+            new_objs.append(obj_copy)
+            objs = new_objs
+        else:
+            raise ValueError(f"unknown patch action: {action}")
+
+    canvas_obj["objects"] = objs
+    copied["canvas"] = canvas_obj
+    return copied
+
+
+def validate_element_preservation(original_canvas: dict, patched_canvas: dict, patches: list[dict]) -> None:
+    orig_objs = original_canvas.get("canvas", {}).get("objects", [])
+    patched_objs = patched_canvas.get("canvas", {}).get("objects", [])
+
+    orig_map = {str(o.get("blytzId") or o.get("id")): o for o in orig_objs if (o.get("blytzId") is not None or o.get("id") is not None)}
+    patched_map = {str(o.get("blytzId") or o.get("id")): o for o in patched_objs if (o.get("blytzId") is not None or o.get("id") is not None)}
+
+    targeted_bids = set()
+    for p in patches or []:
+        bid = p.get("blytzId")
+        if bid is not None:
+            targeted_bids.add(str(bid))
+
+    for bid, o_obj in orig_map.items():
+        if bid not in targeted_bids:
+            if bid not in patched_map:
+                raise ValueError(f"preservation: untargeted object {bid} was removed")
+            p_obj = patched_map[bid]
+            all_keys = set(o_obj.keys()) | set(p_obj.keys())
+            for k in all_keys:
+                if o_obj.get(k) != p_obj.get(k):
+                    raise ValueError(f"preservation: untargeted object {bid} modified property {k}")
+
+    for p in patches or []:
+        action = str(p.get("action") or "").lower()
+        bid = str(p.get("blytzId")) if p.get("blytzId") is not None else None
+        if action in ("remove", "replace"):
+            if bid not in orig_map:
+                raise ValueError(f"patch references unknown blytzId: {bid}")
+        if action == "remove":
+            if bid in patched_map:
+                raise ValueError(f"remove action failed to remove blytzId: {bid}")
+        elif action == "replace":
+            if bid in patched_map and patched_map[bid] == orig_map[bid]:
+                raise ValueError(f"replace action failed to change blytzId: {bid}")
+
+
+def validate_preservation(scope: str, original: dict, patched: dict, patches: list[dict]) -> None:
+    if scope not in ("color", "text"):
+        raise NotImplementedError(f"Unsupported scope for validation: {scope}")
+    orig_objs = original.get("canvas", {}).get("objects", [])
+    patched_objs = patched.get("canvas", {}).get("objects", [])
+
+    orig_ids = {str(o.get("blytzId")) for o in orig_objs if o.get("blytzId") is not None}
+    patched_ids = {str(o.get("blytzId")) for o in patched_objs if o.get("blytzId") is not None}
+
+    if orig_ids != patched_ids:
+        raise ValueError("preservation: object set changed")
+
+    orig_map = {str(o.get("blytzId")): o for o in orig_objs if o.get("blytzId") is not None}
+    patched_map = {str(o.get("blytzId")): o for o in patched_objs if o.get("blytzId") is not None}
+
+    if scope == "color":
+        structural_props = ("left", "top", "width", "height", "angle", "scaleX", "scaleY", "type", "text")
+        for bid, p_obj in patched_map.items():
+            o_obj = orig_map[bid]
+            for prop in structural_props:
+                if o_obj.get(prop) != p_obj.get(prop):
+                    raise ValueError(f"preservation: structural property changed for blytzId={bid}")
+
+            all_keys = set(o_obj.keys()) | set(p_obj.keys())
+            diffs = [k for k in all_keys if o_obj.get(k) != p_obj.get(k)]
+            for d in diffs:
+                if d not in ("fill", "stroke"):
+                    raise ValueError(f"preservation: non-color property changed for blytzId={bid}")
+
+        for p in patches or []:
+            bid = str(p.get("blytzId"))
+            if bid not in orig_map:
+                raise ValueError(f"patch references unknown blytzId: {bid}")
+
+    elif scope == "text":
+        structural_props = ("left", "top", "width", "height", "angle", "scaleX", "scaleY")
+        targeted_ids = {str(p.get("blytzId")) for p in (patches or [])}
+
+        for bid, p_obj in patched_map.items():
+            o_obj = orig_map[bid]
+            if o_obj.get("type") != p_obj.get("type"):
+                raise ValueError(f"preservation: type changed for blytzId={bid}")
+
+            for prop in structural_props:
+                if o_obj.get(prop) != p_obj.get(prop):
+                    raise ValueError(f"preservation: structural property changed for blytzId={bid}")
+
+            if bid in targeted_ids:
+                if str(o_obj.get("type", "")) not in TEXT_OBJECT_TYPES:
+                    raise ValueError(f"preservation: non-text object targeted for blytzId={bid}")
+
+            all_keys = set(o_obj.keys()) | set(p_obj.keys())
+            diffs = [k for k in all_keys if o_obj.get(k) != p_obj.get(k)]
+
+            if bid not in targeted_ids:
+                if diffs:
+                    raise ValueError(f"preservation: untargeted object changed for blytzId={bid}")
+            else:
+                for d in diffs:
+                    if d not in TEXT_PATCHABLE_PROPERTIES:
+                        raise ValueError(f"preservation: disallowed property changed for blytzId={bid}")
+
+        for p in patches or []:
+            bid = str(p.get("blytzId"))
+            if bid not in orig_map:
+                raise ValueError(f"patch references unknown blytzId: {bid}")
+
+
+def finalize_scope_result(
+    message: str, original_canvas_json: dict, raw_result: dict, *,
+    garment_template: str = "tee", active_side: str = "front",
+    print_areas: list | None = None,
+) -> dict:
+    scope = raw_result.get("scope")
+    if scope == "redesign":
+        return raw_result
+    if scope in ("color", "text", "element"):
+        candidates = raw_result.get("suggestions", [])
+        for c in candidates:
+            try:
+                patches = c.get("patches", [])
+                if scope == "element":
+                    patched = apply_element_patches(original_canvas_json, patches)
+                    validate_element_preservation(original_canvas_json, patched, patches)
+                else:
+                    patched = apply_patches(original_canvas_json, patches)
+                    validate_preservation(scope, original_canvas_json, patched, patches)
+                env = {
+                    "schema_version": 1,
+                    "width": 800,
+                    "height": 800,
+                    "canvas": patched["canvas"],
+                }
+                validated = validate_ai_candidate_envelope(env)
+                assert_envelope_in_print_bounds(
+                    validated,
+                    garment_template=garment_template,
+                    side=active_side,
+                )
+                c["canvasJSON"] = validated
+                if "patches" in c:
+                    del c["patches"]
+            except (ValueError, KeyError, TypeError, NotImplementedError, AISuggestValidationError) as exc:
+                raise AIDesignError(
+                    code="ai_scope_violation",
+                    message="AI returned a design that did not preserve the original. Please retry.",
+                ) from exc
+
+        return raw_result
+
+    return raw_result
 
 
 def fabric_object_aabb(obj: Any) -> dict[str, float] | None:

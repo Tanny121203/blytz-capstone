@@ -1,0 +1,14 @@
+{# Reusable Status Badge #}
+{# Usage: {% include "partials/status_badge.html" with status=order.status %} #}
+
+{% if status == 'job_request' %}
+  <span class="blytz-pill blytz-pill--gray">Job Request</span>
+{% elif status == 'pending_edit' %}
+  <span class="blytz-pill blytz-pill--gold">Pending Edit</span>
+{% elif status == 'production' %}
+  <span class="blytz-pill blytz-pill--blue">In Production</span>
+{% elif status == 'completed' %}
+  <span class="blytz-pill blytz-pill--green">Completed</span>
+{% else %}
+  <span class="blytz-pill blytz-pill--gray">{{ status }}</span>
+{% endif %}

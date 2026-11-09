@@ -3,110 +3,137 @@
 
 {% block title %}Accounting — Blytz{% endblock %}
 
-{% block content %}
-<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-  <h1 class="font-display text-3xl text-ink">Accounting</h1>
-  <p class="mt-1 text-ink-muted">
+{% block staff_content %}
+{# Header #}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-text-primary">Accounting</h1>
+  <p class="text-sm text-text-muted mt-1">
     {% if can_edit %}You can edit agreed totals and adjustments.{% else %}View only — ask an admin for accounting edit access.{% endif %}
   </p>
+</div>
 
-  <form method="get" action="{% url 'accounting_export_csv' %}"
-        class="mt-6 flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 sm:flex-row sm:flex-wrap sm:items-end">
-    <div class="min-w-[10rem] flex-1">
-      <label for="export-status" class="mb-1 block text-sm font-medium text-ink">Job status</label>
-      <select name="status" id="export-status"
-              class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-        <option value="">All phases</option>
-        {% for value, label in export_status_choices %}
-        <option value="{{ value }}">{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="min-w-[9rem] flex-1">
-      <label for="export-date-from" class="mb-1 block text-sm font-medium text-ink">From date</label>
-      <input type="date" name="date_from" id="export-date-from"
-             class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-    </div>
-    <div class="min-w-[9rem] flex-1">
-      <label for="export-date-to" class="mb-1 block text-sm font-medium text-ink">To date</label>
-      <input type="date" name="date_to" id="export-date-to"
-             class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-    </div>
-    <div class="flex min-h-11 items-center gap-2 pb-0.5">
-      <input type="checkbox" name="pending_review" id="export-pending-review" value="1"
-             class="h-4 w-4 rounded border-border text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-      <label for="export-pending-review" class="text-sm text-ink">Payment awaiting review</label>
-    </div>
-    {% include "components/button.html" with label="Export CSV" type="submit" variant="secondary" %}
-  </form>
-
-  <div class="mt-8 grid gap-4 sm:grid-cols-2">
-    {% include "components/stat_tile.html" with label="Total collected" value=total_collected %}
-    {% include "components/stat_tile.html" with label="Total outstanding" value=total_outstanding accent=True %}
+{# Export filters #}
+<form method="get" action="{% url 'accounting_export_csv' %}"
+      class="mb-6 blytz-panel p-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+  <div class="min-w-[10rem] flex-1">
+    <label for="export-status" class="block text-xs text-text-muted mb-1.5 uppercase tracking-wider">Job status</label>
+    <select name="status" id="export-status"
+            class="block w-full rounded-lg border border-border bg-bg-elevated px-3 py-2.5 text-sm text-text-primary focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors">
+      <option value="">All phases</option>
+      {% for value, label in export_status_choices %}
+      <option value="{{ value }}">{{ label }}</option>
+      {% endfor %}
+    </select>
   </div>
-
-  {{ collected_chart|json_script:"chart-collected-vs-outstanding" }}
-  {{ collections_chart|json_script:"chart-collections-over-time" }}
-  {{ channel_chart|json_script:"chart-payments-by-channel" }}
-
-  <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-    {% include "components/chart_panel.html" with title="Collected vs outstanding" script_id="chart-collected-vs-outstanding" chart_type="doughnut" rows=collected_chart.rows empty=collected_chart.empty %}
-    {% include "components/chart_panel.html" with title="Payments by channel" script_id="chart-payments-by-channel" chart_type="doughnut" rows=channel_chart.rows empty=channel_chart.empty %}
+  <div class="min-w-[9rem] flex-1">
+    <label for="export-date-from" class="block text-xs text-text-muted mb-1.5 uppercase tracking-wider">From date</label>
+    <input type="date" name="date_from" id="export-date-from"
+           class="block w-full rounded-lg border border-border bg-bg-elevated px-3 py-2.5 text-sm text-text-primary focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors">
   </div>
-  <div class="mt-6">
-    {% include "components/chart_panel.html" with title="Collections over time (30 days)" script_id="chart-collections-over-time" chart_type="line" rows=collections_chart.rows empty=collections_chart.empty %}
+  <div class="min-w-[9rem] flex-1">
+    <label for="export-date-to" class="block text-xs text-text-muted mb-1.5 uppercase tracking-wider">To date</label>
+    <input type="date" name="date_to" id="export-date-to"
+           class="block w-full rounded-lg border border-border bg-bg-elevated px-3 py-2.5 text-sm text-text-primary focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors">
   </div>
+  <div class="flex min-h-11 items-center gap-2 pb-0.5">
+    <input type="checkbox" name="pending_review" id="export-pending-review" value="1"
+           class="h-4 w-4 rounded border-border bg-bg-elevated text-accent focus:ring-accent">
+    <label for="export-pending-review" class="text-sm text-text-muted">Payment awaiting review</label>
+  </div>
+  <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-full border border-text-primary px-6 py-2.5 text-sm font-semibold text-text-primary hover:bg-bg-elevated transition-colors">
+    Export CSV
+  </button>
+</form>
 
-  <div class="mt-8 rounded-lg border border-border md:overflow-x-auto">
-    <table class="table-responsive-cards w-full border-collapse text-left text-sm md:min-w-[48rem]">
-      <thead>
-        <tr class="border-b border-border-strong bg-surface">
-          <th class="px-4 py-3 font-medium">Order</th>
-          <th class="px-4 py-3 font-medium">Customer</th>
-          <th class="px-4 py-3 font-medium">Agreed</th>
-          <th class="px-4 py-3 font-medium">Paid</th>
-          <th class="px-4 py-3 font-medium">Balance</th>
-          <th class="px-4 py-3 font-medium">Status</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-border">
-        {% for order in orders %}
-        <tr class="hover:bg-surface">
-          <td class="px-4 py-3" data-label="Order">
-            <a href="{% url 'accounting_detail' order.order_id %}" class="font-mono font-medium underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">{{ order.order_id }}</a>
-          </td>
-          <td class="px-4 py-3" data-label="Customer">{{ order.customer.get_full_name }}</td>
-          <td class="px-4 py-3 font-mono" data-label="Agreed">{% if order.agreed_total %}₱{{ order.agreed_total }}{% else %}—{% endif %}</td>
-          <td class="px-4 py-3 font-mono" data-label="Paid">₱{{ order.total_paid }}</td>
-          <td class="px-4 py-3 font-mono" data-label="Balance">{% if order.balance is not None %}₱{{ order.balance }}{% else %}—{% endif %}</td>
-          <td class="px-4 py-3" data-label="Status">
-            <div class="flex flex-col items-start gap-1">
-              {% if order.payment_status == "Fully Paid" %}
-                {% include "components/badge.html" with label=order.payment_status variant="success" %}
-              {% else %}
-                {% include "components/badge.html" with label=order.payment_status variant="warning" %}
-              {% endif %}
-              {% if order.pending_payment %}
-                {% include "components/badge.html" with label="Payment awaiting review" variant="warning" %}
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr class="md:table-row">
-          <td colspan="6" class="px-4 py-8" data-label="">
-            {% include "components/empty_state.html" with title="No orders yet" description="Orders appear here after customers submit designs." %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+{# Stats #}
+<div class="grid gap-4 sm:grid-cols-2 mb-6">
+  <div class="blytz-kpi">
+    <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-success/10 border border-success/30">
+      <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div class="flex-1">
+      <p class="text-xs text-text-muted mb-1">Total collected</p>
+      <p class="text-2xl font-bold text-text-primary">{{ total_collected }}</p>
+    </div>
   </div>
-</section>
+  <div class="blytz-kpi">
+    <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-accent/10 border border-accent/30">
+      <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div class="flex-1">
+      <p class="text-xs text-text-muted mb-1">Total outstanding</p>
+      <p class="text-2xl font-bold text-accent">{{ total_outstanding }}</p>
+    </div>
+  </div>
+</div>
+
+{# Charts data #}
+{{ collected_chart|json_script:"chart-collected-vs-outstanding" }}
+{{ collections_chart|json_script:"chart-collections-over-time" }}
+{{ channel_chart|json_script:"chart-payments-by-channel" }}
+
+{# Charts #}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
+  {% include "components/chart_panel.html" with title="Collected vs outstanding" script_id="chart-collected-vs-outstanding" chart_type="doughnut" rows=collected_chart.rows empty=collected_chart.empty %}
+  {% include "components/chart_panel.html" with title="Payments by channel" script_id="chart-payments-by-channel" chart_type="doughnut" rows=channel_chart.rows empty=channel_chart.empty %}
+</div>
+<div class="mb-6">
+  {% include "components/chart_panel.html" with title="Collections over time (30 days)" script_id="chart-collections-over-time" chart_type="line" rows=collections_chart.rows empty=collections_chart.empty %}
+</div>
+
+{# Orders table #}
+<div class="blytz-panel overflow-x-auto">
+  <table class="w-full blytz-table md:min-w-[48rem]">
+    <thead>
+      <tr>
+        <th scope="col" class="text-text-primary font-semibold">Order</th>
+        <th scope="col" class="text-text-primary font-semibold">Customer</th>
+        <th scope="col" class="text-text-primary font-semibold">Agreed</th>
+        <th scope="col" class="text-text-primary font-semibold">Paid</th>
+        <th scope="col" class="text-text-primary font-semibold">Balance</th>
+        <th scope="col" class="text-text-primary font-semibold">Status</t
+      </tr>
+    </thead>
+    <tbody>
+    {% for order in orders %}
+      <tr>
+        <td data-label="Order">
+          <a href="{% url 'accounting_detail' order.order_id %}" class="font-mono font-bold text-black hover:text-accent transition-colors">{{ order.order_id }}</a>
+        </td>
+        <td data-label="Customer" class="text-gray-800 font-medium">{{ order.customer.get_full_name }}</td>
+        <td data-label="Agreed" class="font-mono text-gray-700">{% if order.agreed_total %}₱{{ order.agreed_total }}{% else %}—{% endif %}</td>
+        <td data-label="Paid" class="font-mono text-gray-700">₱{{ order.total_paid }}</td>
+        <td data-label="Balance" class="font-mono text-gray-700 {% if order.balance and order.balance > 0 %}text-orange-600 font-semibold{% endif %}">{% if order.balance is not None %}₱{{ order.balance }}{% else %}—{% endif %}</td>
+        <td data-label="Status">
+          <div class="flex flex-col items-start gap-1">
+            {% if order.payment_status == "Fully Paid" %}
+              <span class="blytz-pill blytz-pill--green">{{ order.payment_status }}</span>
+            {% else %}
+              <span class="blytz-pill blytz-pill--gold">{{ order.payment_status }}</span>
+            {% endif %}
+            {% if order.pending_payment %}
+              <span class="blytz-pill blytz-pill--gold">Payment awaiting review</span>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr class="md:table-row">
+        <td colspan="6" class="text-center py-12 text-text-subtle" data-label="">
+          No orders yet. Orders appear here after customers submit designs.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'vendor/chartjs/chart.umd.min.js' %}" defer></script>
 <script src="{% static 'js/staff_charts.js' %}" defer></script>
 {% endblock %}
-

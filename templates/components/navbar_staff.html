@@ -1,53 +1,127 @@
-<header class="sticky top-0 z-50 border-b border-border-strong bg-ink text-canvas" style="padding-top:env(safe-area-inset-top)">
-  <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-    <a href="{% url 'staff_home' %}" class="inline-flex items-center gap-2 font-display text-xl text-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canvas">
-      Blytz
+{# Fixed navbar #}
+<header class="fixed top-0 left-0 right-0 z-50 bg-black border-b border-[#1F1F1F]" style="padding-top:env(safe-area-inset-top)">
+  <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 h-[64px] sm:h-[72px]">
+    <!-- Logo (left) -->
+    <div class="flex-shrink-0">
+      {% include "partials/logo.html" with size="sm" %}
+    </div>
+
+    <!-- Center navigation (desktop only) -->
+    <nav class="hidden md:flex flex-1 justify-center items-center gap-8" aria-label="Staff">
+      <a href="{% url 'staff_home' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'staff_home' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Overview</a>
+      <a href="{% url 'jobs_pipeline' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'jobs_pipeline' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Jobs</a>
+      <a href="{% url 'accounting_list' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'accounting_list' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Accounting</a>
+      <a href="{% url 'sales_pipeline' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'sales_pipeline' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Sales</a>
       {% if user.is_admin_role %}
-      <span class="inline-flex items-center rounded-full bg-ink px-2 py-0.5 text-xs font-sans font-medium text-canvas ring-1 ring-canvas">{{ user.get_role_display }}</span>
-      {% else %}
-      <span class="inline-flex items-center rounded-full border border-canvas px-2 py-0.5 text-xs font-sans font-medium text-canvas">{{ user.get_role_display }}</span>
+      <a href="{% url 'payment_channel_list' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'payment_channel_list' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Channels</a>
+      <a href="{% url 'user_manage_list' %}" class="blytz-nav-link text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-200 {% if request.resolver_match.url_name == 'user_manage_list' %}text-accent border-b-2 border-accent pb-1{% else %}text-white hover:text-accent{% endif %}">Users</a>
       {% endif %}
-    </a>
-    <button type="button" class="nav-hamburger inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-canvas/30 text-canvas" data-nav-open="staff-nav-drawer" aria-label="Open menu">☰</button>
-    <nav class="nav-desktop flex-wrap items-center justify-end gap-1 text-sm sm:gap-3" aria-label="Staff">
-      <a href="{% url 'staff_home' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-canvas/70 hover:text-canvas">Overview</a>
-      <a href="{% url 'jobs_pipeline' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-canvas/70 hover:text-canvas">Jobs</a>
-      <a href="{% url 'accounting_list' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-canvas/70 hover:text-canvas">Accounting</a>
-      <a href="{% url 'sales_pipeline' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-canvas/70 hover:text-canvas">Sales</a>
-      {% if user.is_admin_role %}
-      <a href="{% url 'payment_channel_list' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-canvas/70 hover:text-canvas">Channels</a>
-      <a href="{% url 'user_manage_list' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-canvas/70 hover:text-canvas">Users</a>
-      {% endif %}
-      <a href="{% url 'account_profile' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-canvas/70 hover:text-canvas">Profile</a>
-      <a href="{% url 'account_logout' %}" class="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-canvas/70 hover:text-canvas">Log out</a>
     </nav>
+
+    <!-- Right side (User Menu & Mobile Toggle) -->
+    <div class="flex items-center gap-3 sm:gap-4">
+      
+      <!-- Circular User Dropdown Menu -->
+      <details class="relative group z-50">
+        <summary class="list-none cursor-pointer focus:outline-none flex items-center justify-center">
+          <!-- Avatar Circle -->
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 border border-accent/40 text-sm font-bold uppercase tracking-wider text-accent transition-all hover:bg-accent/20 hover:border-accent">
+            {% if user.first_name %}
+              {{ user.first_name|slice:":2"|upper }}
+            {% elif user.email %}
+              {{ user.email|slice:":2"|upper }}
+            {% else %}
+              ST
+            {% endif %}
+          </div>
+        </summary>
+        
+        <!-- Dropdown Content -->
+        <div class="absolute right-0 mt-3 w-60 overflow-hidden rounded-xl border border-border bg-bg-surface shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+          <!-- User Info Header -->
+          <div class="border-b border-border p-4 bg-bg-elevated/50">
+            <p class="text-sm font-semibold text-text-primary truncate">
+              {{ user.get_full_name|default:user.email }}
+            </p>
+            <p class="text-xs text-text-muted truncate mt-0.5 mb-2">
+              {{ user.email }}
+            </p>
+            
+            <!-- Role Label (Moved Inside Menu) -->
+            {% if user.is_admin_role %}
+            <span class="inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold text-accent-text uppercase tracking-wider">{{ user.get_role_display }}</span>
+            {% else %}
+            <span class="inline-flex items-center rounded-full border border-accent px-2.5 py-0.5 text-[10px] font-bold text-accent uppercase tracking-wider">{{ user.get_role_display }}</span>
+            {% endif %}
+          </div>
+          
+          <!-- Menu Links -->
+          <div class="p-2 flex flex-col gap-1">
+            <a href="{% url 'account_profile' %}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-muted hover:bg-bg-elevated hover:text-text-primary transition-colors">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              Profile Settings
+            </a>
+            
+            <div class="my-1 h-px bg-border"></div>
+            
+            <a href="{% url 'account_logout' %}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-500 transition-colors">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              Log out
+            </a>
+          </div>
+        </div>
+      </details>
+
+      <!-- Mobile menu button (Hamburger) -->
+      <button type="button" class="md:hidden inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border text-text-primary hover:bg-bg-elevated transition-colors" data-nav-open="staff-nav-drawer" aria-label="Open menu">
+        <span aria-hidden="true">☰</span>
+      </button>
+    </div>
   </div>
 </header>
+
+{# Spacer — pushes content below the fixed navbar #}
+<div class="h-[64px] sm:h-[72px]" aria-hidden="true"></div>
+
+<!-- Mobile drawer -->
 <div id="staff-nav-drawer" class="nav-drawer">
   <div class="nav-drawer-backdrop" data-nav-close></div>
-  <div class="nav-drawer-panel staff" role="dialog" aria-label="Staff menu">
-    <div class="mb-4 flex items-center justify-between gap-2">
-      <a href="{% url 'staff_home' %}" class="inline-flex items-center gap-2 font-display text-lg text-canvas" data-nav-close>
-        Blytz
+  <div class="nav-drawer-panel bg-bg-surface" role="dialog" aria-label="Staff menu">
+    <div class="mb-6 flex items-center justify-between px-4 py-4 border-b border-border">
+      <div class="flex items-center gap-2">
+        <span class="font-display text-lg text-text-primary">BLYTZ</span>
+        <!-- Role Label (Kept in mobile drawer header too) -->
         {% if user.is_admin_role %}
-        <span class="inline-flex items-center rounded-full bg-ink px-2 py-0.5 text-xs font-sans font-medium text-canvas ring-1 ring-canvas">{{ user.get_role_display }}</span>
+        <span class="inline-flex items-center rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-text uppercase tracking-wider">{{ user.get_role_display }}</span>
         {% else %}
-        <span class="inline-flex items-center rounded-full border border-canvas px-2 py-0.5 text-xs font-sans font-medium text-canvas">{{ user.get_role_display }}</span>
+        <span class="inline-flex items-center rounded-full border border-accent px-2 py-0.5 text-xs font-medium text-accent uppercase tracking-wider">{{ user.get_role_display }}</span>
         {% endif %}
-      </a>
-      <button type="button" class="inline-flex min-h-11 min-w-11 items-center justify-center text-canvas" data-nav-close aria-label="Close">×</button>
+      </div>
+      <button type="button" class="inline-flex min-h-11 min-w-11 items-center justify-center text-text-primary" data-nav-close aria-label="Close">×</button>
     </div>
-    <nav class="flex flex-col gap-1 text-sm text-canvas">
-      <a href="{% url 'staff_home' %}" class="min-h-11 rounded-md px-2 py-3 text-canvas/80" data-nav-close>Overview</a>
-      <a href="{% url 'jobs_pipeline' %}" class="min-h-11 rounded-md px-2 py-3 text-canvas/80" data-nav-close>Jobs</a>
-      <a href="{% url 'accounting_list' %}" class="min-h-11 rounded-md px-2 py-3 text-canvas/80" data-nav-close>Accounting</a>
-      <a href="{% url 'sales_pipeline' %}" class="min-h-11 rounded-md px-2 py-3 text-canvas/80" data-nav-close>Sales</a>
+    
+    <nav class="flex flex-col gap-1 px-4 text-sm">
+      <a href="{% url 'staff_home' %}" class="min-h-11 rounded-md px-2 py-3 {% if request.resolver_match.url_name == 'staff_home' %}text-accent bg-accent/5{% else %}text-text-muted hover:text-accent{% endif %}" data-nav-close>Overview</a>
+      <a href="{% url 'jobs_pipeline' %}" class="min-h-11 rounded-md px-2 py-3 {% if request.resolver_match.url_name == 'jobs_pipeline' %}text-accent bg-accent/5{% else %}text-text-muted hover:text-accent{% endif %}" data-nav-close>Jobs</a>
+      <a href="{% url 'accounting_list' %}" class="min-h-11 rounded-md px-2 py-3 {% if request.resolver_match.url_name == 'accounting_list' %}text-accent bg-accent/5{% else %}text-text-muted hover:text-accent{% endif %}" data-nav-close>Accounting</a>
+      <a href="{% url 'sales_pipeline' %}" class="min-h-11 rounded-md px-2 py-3 {% if request.resolver_match.url_name == 'sales_pipeline' %}text-accent bg-accent/5{% else %}text-text-muted hover:text-accent{% endif %}" data-nav-close>Sales</a>
       {% if user.is_admin_role %}
-      <a href="{% url 'payment_channel_list' %}" class="min-h-11 rounded-md px-2 py-3 text-canvas/80" data-nav-close>Channels</a>
-      <a href="{% url 'user_manage_list' %}" class="min-h-11 rounded-md px-2 py-3 text-canvas/80" data-nav-close>Users</a>
+      <a href="{% url 'payment_channel_list' %}" class="min-h-11 rounded-md px-2 py-3 {% if request.resolver_match.url_name == 'payment_channel_list' %}text-accent bg-accent/5{% else %}text-text-muted hover:text-accent{% endif %}" data-nav-close>Channels</a>
+      <a href="{% url 'user_manage_list' %}" class="min-h-11 rounded-md px-2 py-3 {% if request.resolver_match.url_name == 'user_manage_list' %}text-accent bg-accent/5{% else %}text-text-muted hover:text-accent{% endif %}" data-nav-close>Users</a>
       {% endif %}
-      <a href="{% url 'account_profile' %}" class="min-h-11 rounded-md px-2 py-3 text-canvas/80" data-nav-close>Profile</a>
-      <a href="{% url 'account_logout' %}" class="min-h-11 rounded-md px-2 py-3 text-canvas/80" data-nav-close>Log out</a>
+      <!-- Removed Profile and Logout from drawer because they are in the avatar menu now -->
     </nav>
   </div>
 </div>
+
+<!-- Tiny Script to close the dropdown when clicking outside -->
+<script>
+  document.addEventListener('click', function(event) {
+    const details = document.querySelectorAll('details');
+    details.forEach((targetDetail) => {
+      if (!targetDetail.contains(event.target)) {
+        targetDetail.removeAttribute('open');
+      }
+    });
+  });
+</script>

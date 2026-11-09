@@ -43,3 +43,6 @@ static/css/tailwind.css
 *.swp
 .DS_Store
 Thumbs.db
+
+
+.qwen/  

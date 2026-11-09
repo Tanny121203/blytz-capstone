@@ -1,7 +1,7 @@
 {% extends "base_public.html" %}
 {% load static %}
 
-{% block title %}Blytz Clothing — Custom mock-ups{% endblock %}
+{% block title %}Blytz — Custom Streetwear{% endblock %}
 
 {% block extra_head %}
 <script src="{% static 'js/demo-widget.js' %}" defer></script>
@@ -9,65 +9,74 @@
 
 {% block content %}
 {# —— Hero —— #}
-<section class="border-b border-border bg-surface">
+<section
+  class="relative border-b border-border bg-bg-surface"
+  style="
+    background-image:
+      linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+      url('{% static 'img/blytz-hero.jpg' %}');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  ">
   <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20">
     <div>
-      <p class="text-xs font-medium uppercase tracking-widest text-ink-subtle">Blytz Clothing</p>
-      <h1 class="mt-3 font-display text-4xl text-ink sm:text-5xl lg:text-6xl">
-        Mock up your shirt. Order with confidence.
+      <p class="blytz-label mb-4">CUSTOM APPAREL. YOUR VISION.</p>
+      <h1 class="mt-3 font-display text-5xl text-text-primary sm:text-6xl lg:text-7xl">
+        WEAR YOUR <span class="blytz-highlight">STORY</span>
       </h1>
-      <p class="mt-5 max-w-md text-lg text-ink-muted">
-        Design on a live preview, submit for production, and pay peer-to-peer.
-        We track your order — money never touches our system.
+      <p class="mt-5 max-w-md text-lg text-text-muted">
+        Design custom apparel that speaks your language. From concept to creation,
+        Blytz brings your vision to life with premium quality and street-ready style.
       </p>
       <div class="mt-8 flex flex-wrap gap-3">
         {% if user.is_authenticated and user.is_customer %}
         <form method="post" action="{% url 'design_create' %}">
           {% csrf_token %}
-          {% include "components/button.html" with label="Start designing" type="submit" variant="primary" size="lg" %}
+          {% include "components/button.html" with label="Start designing ➡" type="submit" variant="primary" size="lg" %}
         </form>
         {% else %}
-        {% include "components/button.html" with label="Start designing" href="/accounts/login/" variant="primary" size="lg" %}
+        {% include "components/button.html" with label="Start designing ➡" href="/accounts/login/" variant="primary" size="lg" %}
         {% endif %}
-        <a href="{% url 'home' %}#how-it-works" class="inline-flex min-h-11 items-center rounded-md px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+        <a href="{% url 'home' %}#how-it-works" class="inline-flex min-h-11 items-center rounded-full border border-text-primary px-6 py-2.5 text-sm font-semibold text-text-primary hover:bg-bg-elevated">
           How it works
         </a>
       </div>
     </div>
 
-    {# Demo-only widget — no save, no upload #}
-    <div class="rounded-lg border border-border bg-canvas p-4 sm:p-6" id="demo-widget" data-demo-widget>
-      <p class="mb-4 text-xs font-medium uppercase tracking-wide text-ink-subtle">Try a demo · not saved</p>
+    <!-- {# Demo-only widget — no save, no upload #}
+    <div class="rounded-xl border border-border bg-bg-surface p-4 sm:p-6" id="demo-widget" data-demo-widget>
+      <p class="blytz-label mb-4">Try a demo · not saved</p>
       <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
-        <div class="mx-auto flex w-full max-w-[220px] items-center justify-center rounded-lg border border-border bg-surface p-4">
+        <div class="mx-auto flex w-full max-w-[220px] items-center justify-center rounded-lg border border-border bg-bg-elevated p-4">
           <svg viewBox="0 0 200 220" class="h-48 w-full" aria-hidden="true">
             <path id="demo-shirt"
                   d="M40 50 L70 40 L85 60 L115 60 L130 40 L160 50 L150 80 L140 80 L140 190 L60 190 L60 80 L50 80 Z"
-                  fill="#0B0B0C"
-                  stroke="#E4E4E1"
+                  fill="#0D0D0D"
+                  stroke="#2A2A2A"
                   stroke-width="2"/>
             <text id="demo-shirt-text"
                   x="100" y="130"
                   text-anchor="middle"
-                  fill="#FFFFFF"
-                  font-family="Georgia, serif"
-                  font-size="14">Blytz</text>
+                  fill="#D4AF37"
+                  font-family="Bebas Neue, Impact, sans-serif"
+                  font-size="16">Blytz</text>
           </svg>
         </div>
         <div class="flex flex-1 flex-col gap-4">
           <div>
-            <p class="mb-2 text-sm font-medium text-ink">Color</p>
+            <p class="blytz-label mb-2">Color</p>
             <div class="flex flex-wrap gap-2" role="group" aria-label="Shirt color">
-              <button type="button" class="h-11 w-11 rounded-lg border-2 border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" data-demo-color="#0B0B0C" data-demo-text="#FFFFFF" style="background:#0B0B0C" aria-label="Black"></button>
-              <button type="button" class="h-11 w-11 rounded-lg border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" data-demo-color="#FFFFFF" data-demo-text="#0B0B0C" style="background:#FFFFFF" aria-label="White"></button>
-              <button type="button" class="h-11 w-11 rounded-lg border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" data-demo-color="#1e3a5f" data-demo-text="#FFFFFF" style="background:#1e3a5f" aria-label="Navy"></button>
-              <button type="button" class="h-11 w-11 rounded-lg border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" data-demo-color="#6B6B66" data-demo-text="#FFFFFF" style="background:#6B6B66" aria-label="Gray"></button>
+              <button type="button" class="h-11 w-11 rounded-lg border-2 border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" data-demo-color="#0D0D0D" data-demo-text="#D4AF37" style="background:#0D0D0D" aria-label="Black"></button>
+              <button type="button" class="h-11 w-11 rounded-lg border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" data-demo-color="#FFFFFF" data-demo-text="#000000" style="background:#FFFFFF" aria-label="White"></button>
+              <button type="button" class="h-11 w-11 rounded-lg border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" data-demo-color="#1e3a5f" data-demo-text="#FFFFFF" style="background:#1e3a5f" aria-label="Navy"></button>
+              <button type="button" class="h-11 w-11 rounded-lg border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" data-demo-color="#6B6B66" data-demo-text="#FFFFFF" style="background:#6B6B66" aria-label="Gray"></button>
             </div>
           </div>
           <div>
-            <label for="demo-text-input" class="mb-1.5 block text-sm font-medium text-ink">Text on shirt</label>
+            <label for="demo-text-input" class="blytz-label mb-1.5 block">Text on shirt</label>
             <input id="demo-text-input" type="text" maxlength="24" value="Blytz"
-                   class="block w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-base text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                   class="block w-full rounded-lg border border-border bg-bg-elevated px-3 py-2.5 text-base text-text-primary focus:border-accent focus:ring-1 focus:ring-accent outline-none"
                    data-demo-text-input>
           </div>
           {% if user.is_authenticated and user.is_customer %}
@@ -79,40 +88,82 @@
           {% include "components/button.html" with label="Sign in to start designing" href="/accounts/login/" variant="secondary" class="w-full justify-center" %}
           {% endif %}
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 </section>
 
-{# —— How it works —— #}
-<section id="how-it-works" class="scroll-mt-24 py-16 sm:py-20">
-  <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">How it works</h2>
-    <p class="mt-2 max-w-xl text-ink-muted">Four steps from idea to delivery. Payments stay peer-to-peer.</p>
-    <ol class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {% for step in how_steps %}
-      <li class="rounded-lg border border-border bg-canvas p-5">
-        <span class="font-mono text-sm text-ink-subtle">{{ forloop.counter }}</span>
-        <h3 class="mt-2 font-display text-xl text-ink">{{ step.title }}</h3>
-        <p class="mt-2 text-sm text-ink-muted">{{ step.body }}</p>
-      </li>
-      {% endfor %}
-    </ol>
+{# —— Features Bar —— #}
+<section class="border-b border-border bg-bg-surface">
+  <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-border">
+      
+      <!-- Feature 1 -->
+      <div class="flex items-center gap-4 lg:px-6 first:pl-0">
+        <svg class="h-8 w-8 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+        </svg>
+        <div>
+          <h4 class="text-sm font-bold text-text-primary">Premium Quality</h4>
+          <p class="text-xs text-text-muted mt-1">Comfortable. Durable. Everyday.</p>
+        </div>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="flex items-center gap-4 lg:px-6">
+        <svg class="h-8 w-8 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+        </svg>
+        <div>
+          <h4 class="text-sm font-bold text-text-primary">Fully Customizable</h4>
+          <p class="text-xs text-text-muted mt-1">Text, images, colors & more.</p>
+        </div>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="flex items-center gap-4 lg:px-6">
+        <svg class="h-8 w-8 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" />
+        </svg>
+        <div>
+          <h4 class="text-sm font-bold text-text-primary">AI Design Ideas</h4>
+          <p class="text-xs text-text-muted mt-1">Get inspired. Create faster.</p>
+        </div>
+      </div>
+
+      <!-- Feature 4 -->
+      <div class="flex items-center gap-4 lg:px-6">
+        <svg class="h-8 w-8 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+        </svg>
+        <div>
+          <h4 class="text-sm font-bold text-text-primary">Fast & Reliable</h4>
+          <p class="text-xs text-text-muted mt-1">From design to production.</p>
+        </div>
+      </div>
+
+    </div>
   </div>
 </section>
 
+
 {# —— Gallery —— #}
-<section id="gallery" class="scroll-mt-24 border-y border-border bg-surface py-16 sm:py-20">
+<section id="gallery" class="scroll-mt-24 border-y border-border bg-bg-surface py-16 sm:py-20 relative overflow-hidden">
+
+  <!-- Subtle Background Glow -->
+  <div class="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[600px] h-[600px] bg-accent/5 rounded-full blur-3xl pointer-events-none"></div>
+
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">Gallery</h2>
-    <p class="mt-2 text-ink-muted">Sample looks — placeholders until your catalog goes live.</p>
+    <p class="blytz-label mb-3">Collection</p>
+    <h2 class="font-display text-4xl text-text-primary sm:text-5xl">FEATURED <span class="blytz-highlight">PRODUCTS</span></h2>
+    <p class="mt-2 text-text-muted">Sample looks — placeholders until your catalog goes live.</p>
     <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {% for item in gallery_items %}
-      <article class="overflow-hidden rounded-lg border border-border bg-canvas">
-        <div class="flex h-40 items-center justify-center bg-ink/5 font-display text-2xl text-ink-subtle">{{ item.label }}</div>
+      <article class="overflow-hidden rounded-xl border border-border bg-bg-surface blytz-card-hover">
+        <div class="flex h-40 items-center justify-center bg-bg-elevated font-display text-2xl text-text-subtle">{{ item.label }}</div>
         <div class="border-t border-border p-4">
-          <h3 class="font-medium text-ink">{{ item.title }}</h3>
-          <p class="mt-1 text-sm text-ink-muted">{{ item.caption }}</p>
+          <h3 class="font-medium text-text-primary">{{ item.title }}</h3>
+          <p class="mt-1 text-sm text-text-muted">{{ item.caption }}</p>
         </div>
       </article>
       {% endfor %}
@@ -120,56 +171,301 @@
   </div>
 </section>
 
-{# —— Testimonials —— #}
-<section id="testimonials" class="scroll-mt-24 py-16 sm:py-20">
+
+{# —— How it works —— #}
+<section id="how-it-works" class="scroll-mt-24 py-16 sm:py-20">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">What customers say</h2>
-    <div class="mt-10 grid gap-4 md:grid-cols-3">
+    <p class="blytz-label mb-3">Process</p>
+    <h2 class="font-display text-4xl text-text-primary sm:text-5xl">HOW IT <span class="blytz-highlight">WORKS</span></h2>
+    <p class="mt-2 max-w-xl text-text-muted">Four steps from idea to delivery. Payments stay peer-to-peer.</p>
+    
+    <ol class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      
+      <!-- Step 1: Design -->
+      <li class="relative overflow-hidden rounded-xl border border-border bg-bg-surface p-6 blytz-card-hover">
+        <!-- Background Step Number -->
+        <span class="absolute top-4 right-5 font-display text-5xl font-bold text-border/30 select-none">01</span>
+        
+        <!-- Icon Container -->
+        <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </div>
+        
+        <h3 class="font-display text-xl text-text-primary">Design</h3>
+        <p class="mt-2 text-sm text-text-muted">Use our interactive tool to add text, images, and colors to your apparel.</p>
+      </li>
+
+      <!-- Step 2: Submit -->
+      <li class="relative overflow-hidden rounded-xl border border-border bg-bg-surface p-6 blytz-card-hover">
+        <span class="absolute top-4 right-5 font-display text-5xl font-bold text-border/30 select-none">02</span>
+        
+        <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+        </div>
+        
+        <h3 class="font-display text-xl text-text-primary">Submit</h3>
+        <p class="mt-2 text-sm text-text-muted">Send your design directly to our creators to review and prepare your order.</p>
+      </li>
+
+      <!-- Step 3: P2P -->
+      <li class="relative overflow-hidden rounded-xl border border-border bg-bg-surface p-6 blytz-card-hover">
+        <span class="absolute top-4 right-5 font-display text-5xl font-bold text-border/30 select-none">03</span>
+        
+        <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+        </div>
+        
+        <h3 class="font-display text-xl text-text-primary">P2P Payment</h3>
+        <p class="mt-2 text-sm text-text-muted">Pay securely through peer-to-peer transfer. No middleman holding your funds.</p>
+      </li>
+
+      <!-- Step 4: Receive -->
+      <li class="relative overflow-hidden rounded-xl border border-border bg-bg-surface p-6 blytz-card-hover">
+        <span class="absolute top-4 right-5 font-display text-5xl font-bold text-border/30 select-none">04</span>
+        
+        <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        </div>
+        
+        <h3 class="font-display text-xl text-text-primary">Receive</h3>
+        <p class="mt-2 text-sm text-text-muted">Get your premium, custom-made streetwear delivered right to your door.</p>
+      </li>
+
+    </ol>
+  </div>
+</section>
+
+
+{# —— Testimonials —— #}
+<section id="testimonials" class="scroll-mt-24 border-y border-border bg-bg-surface py-16 sm:py-20 relative overflow-hidden">
+  
+  <!-- Subtle Background Glow -->
+  <div class="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[600px] h-[600px] bg-accent/5 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 relative">
+    <!-- Section Header -->
+    <div class="flex flex-col items-start md:flex-row md:items-end md:justify-between gap-6">
+      <div>
+        <p class="blytz-label mb-3">Reviews</p>
+        <h2 class="font-display text-4xl text-text-primary sm:text-5xl">WHAT THEY <span class="blytz-highlight">SAY</span></h2>
+      </div>
+      
+      <!-- Overall Rating Badge -->
+      <div class="flex items-center gap-3 rounded-full border border-border bg-bg-elevated px-4 py-2">
+        <div class="flex text-accent">
+          <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <span class="text-xs font-semibold text-text-primary">5.0 / 5.0 Rating</span>
+      </div>
+    </div>
+
+    <!-- Testimonials Grid -->
+    <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {% for t in testimonials %}
-      <blockquote class="rounded-lg border border-border bg-canvas p-5">
-        <p class="text-sm text-ink">“{{ t.quote }}”</p>
-        <footer class="mt-4 text-sm font-medium text-ink-muted">— {{ t.name }}</footer>
+      <blockquote class="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-bg-surface p-6 sm:p-8 blytz-card-hover transition-all duration-300 hover:border-accent/40">
+        
+        <!-- Decorative Background Quote Icon -->
+        <svg class="absolute -top-4 -right-4 h-24 w-24 text-border/30 transition-transform duration-500 group-hover:scale-110 group-hover:text-accent/5 pointer-events-none" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+        </svg>
+
+        <div class="relative z-10">
+          <!-- 5-Star Rating -->
+          <div class="flex gap-1 text-accent mb-5">
+            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          </div>
+          
+          <!-- Quote Text -->
+          <p class="text-sm leading-relaxed text-text-primary/90 font-medium">"{{ t.quote }}"</p>
+        </div>
+        
+        <!-- User Info Footer -->
+        <footer class="mt-8 flex items-center gap-3 border-t border-border/60 pt-5">
+          <!-- Smart Avatar: Uses image if provided, otherwise generates initials on dark background -->
+          <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border bg-bg-elevated">
+            {% if t.image_url %}
+              <img src="{{ t.image_url }}" alt="{{ t.name }}" class="h-full w-full object-cover">
+            {% else %}
+              <img src="https://ui-avatars.com/api/?name={{ t.name|urlencode }}&background=18181b&color=D4AF37&bold=true" alt="{{ t.name }}" class="h-full w-full object-cover">
+            {% endif %}
+          </div>
+          
+          <div>
+            <p class="text-sm font-bold text-text-primary">{{ t.name }}</p>
+            <p class="text-[11px] font-medium text-accent flex items-center gap-1 mt-0.5 uppercase tracking-wider">
+              <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+              Verified Buyer
+            </p>
+          </div>
+        </footer>
       </blockquote>
       {% endfor %}
     </div>
   </div>
 </section>
 
-{# —— FAQ —— #}
-<section id="faq" class="scroll-mt-24 border-y border-border bg-surface py-16 sm:py-20">
+{# ——  FAQ —— #}
+<section id="faq" class="scroll-mt-24 py-16 sm:py-20">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">FAQ</h2>
-    <div class="mt-10 max-w-3xl divide-y divide-border rounded-lg border border-border bg-canvas">
-      {% for item in faqs %}
-      <details class="group p-4 open:bg-surface/50">
-        <summary class="cursor-pointer list-none text-sm font-medium text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink [&::-webkit-details-marker]:hidden">
-          {{ item.q }}
-        </summary>
-        <p class="mt-3 text-sm text-ink-muted">{{ item.a }}</p>
-      </details>
-      {% endfor %}
+    <div class="grid gap-10 lg:grid-cols-3 lg:gap-16">
+      
+      <!-- Left Column: Title & Info -->
+      <div class="lg:col-span-1">
+        <div class="sticky top-24">
+          <p class="blytz-label mb-3">Support</p>
+          <h2 class="font-display text-4xl text-text-primary sm:text-5xl">FREQUENTLY <span class="blytz-highlight">ASKED</span></h2>
+          <p class="mt-4 text-sm leading-relaxed text-text-muted max-w-sm">
+            Everything you need to know about our products, sizing, and the peer-to-peer payment process. Can't find the answer you're looking for? Reach out to our team.
+          </p>
+        </div>
+      </div>
+
+      <!-- Right Column: FAQ Accordion Cards -->
+      <div class="lg:col-span-2 space-y-4">
+        {% for item in faqs %}
+        <details class="group overflow-hidden rounded-xl border border-border bg-bg-surface transition-all duration-300 open:border-accent/50 open:bg-bg-elevated hover:border-accent/30">
+          
+          <summary class="flex cursor-pointer items-center justify-between p-5 text-sm font-semibold text-text-primary focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+            {{ item.q }}
+            
+            <!-- Plus/Minus Toggle Icon -->
+            <span class="ml-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-elevated transition-colors group-open:bg-accent/10">
+              <!-- Plus Icon (visible when closed) -->
+              <svg class="h-4 w-4 text-text-muted transition-transform duration-300 group-open:rotate-90 group-open:opacity-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <!-- Minus Icon (visible when open) -->
+              <svg class="absolute h-4 w-4 text-accent opacity-0 transition-transform duration-300 -rotate-90 group-open:rotate-0 group-open:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
+              </svg>
+            </span>
+          </summary>
+          
+          <div class="px-5 pb-5 pt-0">
+            <div class="h-px w-full bg-border mb-4"></div>
+            <p class="text-sm leading-relaxed text-text-muted">{{ item.a }}</p>
+          </div>
+          
+        </details>
+        {% endfor %}
+      </div>
+
     </div>
   </div>
-</section>
+</section>{# —— Contact —— #}
+<section id="contact" class="scroll-mt-24 border-y border-border bg-bg-surface py-16 sm:py-24 relative overflow-hidden">
+  
+  <!-- Optional: Subtle background glow effect -->
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-accent/5 rounded-full blur-3xl pointer-events-none"></div>
 
-{# —— Contact —— #}
-<section id="contact" class="scroll-mt-24 py-16 sm:py-20">
-  <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <h2 class="font-display text-3xl text-ink">Contact</h2>
-    <p class="mt-2 max-w-xl text-ink-muted">
-      Questions about sizing, artwork, or payment? Message us on Messenger — we reply there.
-    </p>
-    <div class="mt-8 flex flex-wrap gap-3">
-      {% if messenger_url %}
-        {% include "components/button.html" with label="Open Messenger" href=messenger_url variant="primary" %}
-      {% else %}
-        {% include "components/button.html" with label="Open Messenger" href="#" variant="primary" disabled=True %}
-      {% endif %}
-      {% if user.is_authenticated and user.is_customer %}
-        {% include "components/button.html" with label="Go to dashboard" href="/app/" variant="secondary" %}
-      {% elif not user.is_authenticated %}
-        {% include "components/button.html" with label="Create an account" href="/accounts/signup/" variant="secondary" %}
-      {% endif %}
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 relative">
+    <div class="grid gap-12 lg:grid-cols-2 lg:gap-8 lg:items-center">
+      
+      <!-- Left Column: Copy & Info -->
+      <div class="max-w-xl">
+        <p class="blytz-label mb-3">Get in touch</p>
+        <h2 class="font-display text-4xl text-text-primary sm:text-5xl lg:text-6xl leading-tight">
+          LET'S CREATE SOMETHING <span class="blytz-highlight">UNIQUE</span>
+        </h2>
+        <p class="mt-6 text-lg text-text-muted leading-relaxed">
+          Questions about sizing, artwork, or the peer-to-peer payment process? Drop us a message — our team is ready to help bring your vision to life.
+        </p>
+
+        <!-- Trust Indicators / Perks -->
+        <div class="mt-8 space-y-4">
+          <div class="flex items-center gap-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-bg-elevated border border-border text-accent">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold text-text-primary">Fast Response Time</h4>
+              <p class="text-xs text-text-muted">We typically reply within a few hours.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-bg-elevated border border-border text-accent">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold text-text-primary">Direct Designer Support</h4>
+              <p class="text-xs text-text-muted">Talk directly with the people making your gear.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Action Card -->
+      <div class="relative">
+        <!-- Decorative offset background block -->
+        <div class="absolute inset-0 bg-accent/10 rounded-2xl transform translate-x-2 translate-y-2 sm:translate-x-4 sm:translate-y-4"></div>
+        
+        <!-- Main Card -->
+        <div class="relative rounded-2xl border border-border bg-bg-surface p-6 sm:p-8 shadow-2xl backdrop-blur-sm">
+          <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-[#0084FF]/10 text-[#0084FF]">
+            <!-- Messenger Icon -->
+            <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.477 2 2 6.14 2 11.25c0 2.91 1.46 5.5 3.73 7.15V22l3.24-1.81c.95.26 1.96.41 3.03.41 5.52 0 10-4.14 10-9.25S17.52 2 12 2zm.93 11.83l-2.44-2.6-4.77 2.6 5.24-5.6 2.5 2.6 4.7-2.6-5.23 5.6z"/>
+            </svg>
+          </div>
+          
+          <h3 class="font-display text-2xl text-text-primary mb-2">Direct Message</h3>
+          <p class="text-sm text-text-muted mb-8">
+            The fastest way to get in touch. Send us your questions, reference images, or just say hi.
+          </p>
+
+          <div class="flex flex-col gap-3">
+            {% if messenger_url %}
+              <a href="{{ messenger_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0084FF] px-6 py-3.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 hover:bg-[#0073e6] focus:outline-none focus:ring-2 focus:ring-[#0084FF] focus:ring-offset-2 focus:ring-offset-bg-surface">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.14 2 11.25c0 2.91 1.46 5.5 3.73 7.15V22l3.24-1.81c.95.26 1.96.41 3.03.41 5.52 0 10-4.14 10-9.25S17.52 2 12 2zm.93 11.83l-2.44-2.6-4.77 2.6 5.24-5.6 2.5 2.6 4.7-2.6-5.23 5.6z"/></svg>
+                Open Messenger
+              </a>
+            {% else %}
+              <button disabled class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0084FF]/50 px-6 py-3.5 text-sm font-semibold text-white/70 cursor-not-allowed">
+                Messenger Unavailable
+              </button>
+            {% endif %}
+
+            <!-- Divider -->
+            <div class="relative my-2 flex items-center py-2">
+              <div class="flex-grow border-t border-border"></div>
+              <span class="flex-shrink-0 px-4 text-xs text-text-muted uppercase tracking-wider font-mono">Or</span>
+              <div class="flex-grow border-t border-border"></div>
+            </div>
+
+            <!-- Account / Dashboard Actions -->
+            {% if user.is_authenticated and user.is_customer %}
+              {% include "components/button.html" with label="Go to dashboard" href="/app/" variant="secondary" class="w-full justify-center" %}
+            {% elif not user.is_authenticated %}
+              {% include "components/button.html" with label="Create an account" href="/accounts/signup/" variant="secondary" class="w-full justify-center" %}
+            {% endif %}
+          </div>
+          
+          <p class="mt-6 text-center text-xs text-text-subtle">
+            We respect your privacy. Your designs and info stay safe.
+          </p>
+        </div>
+      </div>
+      
     </div>
   </div>
 </section>

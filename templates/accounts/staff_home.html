@@ -1,41 +1,164 @@
 {% extends "base_staff.html" %}
-{% load static %}
 
-{% block title %}Staff — Blytz{% endblock %}
+{% block title %}Staff Dashboard — Blytz{% endblock %}
 
-{% block content %}
-<section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-  <h1 class="font-display text-3xl text-ink">Overview</h1>
-  <p class="mt-2 text-ink-muted">Hello, {{ user.get_short_name }}.</p>
+{% block staff_content %}
+{# Header row #}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+  <div>
+    <h1 class="text-3xl font-bold text-text-primary mb-1">Dashboard</h1>
+    <p class="text-sm text-text-muted">Overview of your business, orders, and production status.</p>
+  </div>
+  <div>
+    <button class="inline-flex items-center gap-2 px-4 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-text-muted hover:border-accent transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <span>Oct 1, 2026 - Oct 31, 2026</span>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </button>
+  </div>
+</div>
 
-  <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-    {% include "components/stat_tile.html" with label="Orders" value=stat_orders %}
-    {% include "components/stat_tile.html" with label="Job requests" value=stat_job_requests %}
-    {% include "components/stat_tile.html" with label="Leads" value=stat_leads %}
-    {% include "components/stat_tile.html" with label="Incomplete designs" value=stat_incomplete accent=True %}
-    <a href="{% url 'jobs_pipeline' %}?pending_review=1"
-       class="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-      {% include "components/stat_tile.html" with label="Payments awaiting review" value=stat_pending_review hint="View orders with a pending claim" %}
-    </a>
+{# Row 1: KPI Cards #}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+  {% include "partials/kpi_card.html" with icon="orders" label="Total Orders" value=total_orders caption="+12% vs last month" color="gray" %}
+  {% include "partials/kpi_card.html" with icon="pending" label="Pending Review" value=pending_review_count caption="Needs approval" color="gold" %}
+  {% include "partials/kpi_card.html" with icon="production" label="In Production" value=in_production_count caption="Active orders" color="blue" %}
+  {% include "partials/kpi_card.html" with icon="completed" label="Completed" value=completed_count caption="+24% This month" color="green" %}
+  {% include "partials/kpi_card.html" with icon="sales" label="Total Sales" value=total_sales caption="This month" color="gold" %}
+</div>
+
+{# Row 2: Charts (2/3 + 1/3) #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+  
+  {# Orders Overview (2/3 width) #}
+  <div class="lg:col-span-2 blytz-panel p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-lg font-semibold text-text-primary">Orders Overview</h2>
+      <div class="flex items-center gap-4 text-xs">
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-accent"></span><span class="text-text-muted">Total Orders</span></span>
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-success"></span><span class="text-text-muted">Completed</span></span>
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-info"></span><span class="text-text-muted">In Production</span></span>
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-warning"></span><span class="text-text-muted">Pending</span></span>
+      </div>
+    </div>
+    <div class="h-64 bg-bg-elevated rounded-lg flex items-center justify-center border border-border">
+      <p class="text-text-subtle text-sm">Chart.js line chart will be added in Step 4</p>
+    </div>
   </div>
 
-  {{ phase_chart|json_script:"chart-orders-by-phase" }}
-  {{ orders_per_day_chart|json_script:"chart-orders-per-day" }}
-
-  <div class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
-    {% include "components/chart_panel.html" with title="Orders by phase" script_id="chart-orders-by-phase" chart_type="bar" rows=phase_chart.rows empty=phase_chart.empty %}
-    {% include "components/chart_panel.html" with title="New orders (30 days)" script_id="chart-orders-per-day" chart_type="line" rows=orders_per_day_chart.rows empty=orders_per_day_chart.empty %}
+  {# Order Status (1/3 width) #}
+  <div class="blytz-panel p-6">
+    <h2 class="text-lg font-semibold text-text-primary mb-6">Order Status</h2>
+    <div class="h-64 bg-bg-elevated rounded-lg flex items-center justify-center border border-border">
+      <p class="text-text-subtle text-sm">Chart.js donut chart will be added in Step 4</p>
+    </div>
   </div>
 
-  <div class="mt-10 flex flex-wrap gap-3">
-    {% include "components/button.html" with label="Jobs pipeline" href="/staff/jobs/" variant="primary" %}
-    {% include "components/button.html" with label="Accounting" href="/staff/accounting/" variant="secondary" %}
-    {% include "components/button.html" with label="Sales" href="/staff/sales/" variant="secondary" %}
-  </div>
-</section>
-{% endblock %}
+</div>
 
-{% block extra_js %}
-<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}" defer></script>
-<script src="{% static 'js/staff_charts.js' %}" defer></script>
+{# Row 3: Tables (2/3 + 1/3) #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  
+  {# Recent Orders (2/3 width) #}
+  <div class="lg:col-span-2 blytz-panel">
+    <div class="flex justify-between items-center p-6 border-b border-border">
+      <h2 class="text-lg font-semibold text-text-primary">Recent Orders</h2>
+      <a href="{% url 'jobs_pipeline' %}" class="text-sm text-accent hover:text-accent-hover transition-colors">View All →</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full blytz-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Customer</th>
+            <th>Product</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in recent_orders %}
+          <tr>
+            <td class="font-medium text-text-primary">#{{ order.order_id }}</td>
+            <td>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-bg-elevated border border-border flex items-center justify-center">
+                  <span class="text-xs text-text-muted">{{ order.customer.get_short_name|first|upper }}</span>
+                </div>
+                <span>{{ order.customer.get_full_name }}</span>
+              </div>
+            </td>
+            <td>{{ order.design.title|default:"Custom Design" }}</td>
+            <td>{% include "partials/status_badge.html" with status=order.status %}</td>
+            <td>{{ order.created_at|date:"M d, Y" }}</td>
+            <td>
+              <div class="flex items-center gap-2">
+                <a href="{% url 'staff_order_detail' order.order_id %}" class="px-3 py-1 text-xs border border-accent text-accent rounded hover:bg-accent/10 transition-colors">View</a>
+                <button class="text-text-muted hover:text-text-primary">⋮</button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-8 text-text-subtle">No recent orders</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# Recent Leads (1/3 width) #}
+  <div class="blytz-panel">
+    <div class="flex justify-between items-center p-6 border-b border-border">
+      <h2 class="text-lg font-semibold text-text-primary">Recent Leads</h2>
+      <a href="{% url 'sales_pipeline' %}" class="text-sm text-accent hover:text-accent-hover transition-colors">View All →</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full blytz-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Product</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in recent_leads %}
+          <tr>
+            <td>{{ lead.customer.get_full_name }}</td>
+            <td>{{ lead.order.design.title|default:"Custom" }}</td>
+            <td>
+              {% if lead.stage == 'new_lead' %}
+                <span class="blytz-pill blytz-pill--blue">New</span>
+              {% elif lead.stage == 'order_confirmed' %}
+                <span class="blytz-pill blytz-pill--gray">Contacted</span>
+              {% elif lead.stage == 'design_review' %}
+                <span class="blytz-pill blytz-pill--red">Interested</span>
+              {% elif lead.stage == 'completed' %}
+                <span class="blytz-pill blytz-pill--green">Converted</span>
+              {% else %}
+                <span class="blytz-pill blytz-pill--gray">{{ lead.get_stage_display }}</span>
+              {% endif %}
+            </td>
+            <td>{{ lead.created_at|date:"M d" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center py-8 text-text-subtle">No recent leads</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
 {% endblock %}

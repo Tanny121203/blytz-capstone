@@ -34,7 +34,7 @@ SECRET_KEY = env("SECRET_KEY", default=_DEFAULT_SECRET_KEY)
 
 DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1",".github.dev"])
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 # Behind Railway / reverse proxies that terminate TLS
@@ -177,13 +177,34 @@ MESSENGER_PAGE_USERNAME = env("MESSENGER_PAGE_USERNAME", default="")
 PAYMENT_WINDOW_MINUTES = env("PAYMENT_WINDOW_MINUTES")
 PROOF_MAX_UPLOAD_MB = env("PROOF_MAX_UPLOAD_MB")
 
-# Stage O — Gemini AI design suggestions (never hard-code the key).
-# Set GEMINI_API_KEY in .env as an uncommented line, e.g. GEMINI_API_KEY=...
-# Empty / missing → live AI disabled (editor uses mock fallback). Restart runserver after .env changes.
+# AI design suggestions (Gemini or OpenAI)
+AI_DESIGN_PROVIDER = (env("AI_DESIGN_PROVIDER", default="gemini") or "gemini").strip().lower()
+
 GEMINI_API_KEY = (env("GEMINI_API_KEY", default="") or "").strip()
-# Prefer gemini-3.5-flash-lite (works for new free-tier keys; 2.5 returns 404;
-# gemini-3.8-flash may hang/timeout on some keys). Alt: gemini-3.1-flash-lite.
 GEMINI_MODEL = (env("GEMINI_MODEL", default="gemini-3.5-flash-lite") or "").strip()
+GEMINI_REDESIGN_MODEL = (
+    env("GEMINI_REDESIGN_MODEL", default="gemini-3.6-flash") or "gemini-3.6-flash"
+).strip()
+GEMINI_REQUEST_TIMEOUT = env.int("GEMINI_REQUEST_TIMEOUT", default=120)
+
+OPENAI_API_KEY = (env("OPENAI_API_KEY", default="") or "").strip()
+OPENAI_MODEL = (env("OPENAI_MODEL", default="gpt-4o-mini") or "").strip()
+
+DEEPSEEK_API_KEY = (env("DEEPSEEK_API_KEY", default="") or "").strip()
+DEEPSEEK_MODEL = (env("DEEPSEEK_MODEL", default="deepseek-flash") or "").strip()
+DEEPSEEK_BASE_URL = (env("DEEPSEEK_BASE_URL", default="https://api.deepseek.com/v1") or "").strip()
+
+GROQ_API_KEY = (env("GROQ_API_KEY", default="") or "").strip()
+GROQ_MODEL = (env("GROQ_MODEL", default="llama-3.3-70b-versatile") or "").strip()
+
+MISTRAL_API_KEY = (env("MISTRAL_API_KEY", default="") or "").strip()
+MISTRAL_MODEL = (env("MISTRAL_MODEL", default="mistral-small-latest") or "").strip()
+
+CEREBRAS_API_KEY = (env("CEREBRAS_API_KEY", default="") or "").strip()
+CEREBRAS_MODEL = (env("CEREBRAS_MODEL", default="llama3.1-8b") or "").strip()
+CEREBRAS_MAX_TOKENS = env.int("CEREBRAS_MAX_TOKENS", default=8192)
+CEREBRAS_REQUEST_TIMEOUT = env.int("CEREBRAS_REQUEST_TIMEOUT", default=60)
+
 AI_SUGGEST_RATE_LIMIT_PER_HOUR = env.int("AI_SUGGEST_RATE_LIMIT_PER_HOUR", default=5)
 AI_SUGGEST_RATE_LIMIT_WINDOW_SECONDS = env.int(
     "AI_SUGGEST_RATE_LIMIT_WINDOW_SECONDS", default=3600
