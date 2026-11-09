@@ -736,10 +736,14 @@ class AISuggestCerebrasClientUnitTests(TestCase):
         self.assertEqual(body_sent["model"], "qwen-3.8-27b")
         mock_log.assert_called_once()
         log_args = mock_log.call_args[0]
-        self.assertIn("cerebras_length_exceeded", log_args[0])
-        self.assertEqual(log_args[1], "qwen-3.8-27b")
-        self.assertEqual(log_args[2], 150)
-        self.assertEqual(log_args[3], 2048)
+        formatted = log_args[0] % log_args[1:]
+        self.assertIn("cerebras_length_exceeded", formatted)
+        self.assertEqual(log_args[1], "cerebras")     # provider_name
+        self.assertEqual(log_args[1], "cerebras")
+        self.assertEqual(log_args[2], "qwen-3.8-27b")
+        self.assertEqual(log_args[3], 150)
+        self.assertEqual(log_args[4], 2048)  # or whatever output_tokens value the test uses
+        # self.assertEqual(log_args[3], 2048)
 @override_settings(
     AI_DESIGN_PROVIDER="groq",
     GROQ_API_KEY="test-groq-key-not-real",
@@ -1740,3 +1744,257 @@ class AISuggestStage2VisionTests(TestCase):
                 reference_image={"data": "Zm9v", "mime_type": "image/png"}
             )
         self.assertEqual(ctx.exception.code, "ai_validation")
+
+
+class AISuggestElementScopeTests(TestCase):
+    def setUp(self):
+        self.customer = User.objects.create_user(
+            email="element-customer@example.com",
+            password="test-pass-123",
+            role=User.Role.CUSTOMER,
+        )
+        self.design = Design.objects.create(
+            owner=self.customer,
+            title="Element test design",
+            garment_template="tee",
+            garment_color="white",
+            canvas_json={
+                "schema_version": 1,
+                "width": 800,
+                "height": 800,
+                "canvas": {
+                    "version": "6.6.1",
+                    "objects": [
+                        {
+                            "type": "Circle",
+                            "left": 300,
+                            "top": 300,
+                            "width": 100,
+                            "height": 100,
+                            "fill": "#ff0000",
+                            "blytzId": "obj-circle",
+                        },
+                        {
+                            "type": "Rect",
+                            "left": 450,
+                            "top": 300,
+                            "width": 80,
+                            "height": 80,
+                            "fill": "#00ff00",
+                            "blytzId": "obj-rect",
+                        }
+                    ],
+                },
+            },
+        )
+        self.url = reverse("design_ai_suggest", args=[self.design.pk])
+
+    def test_detect_scope_element_returns_element(self):
+        from apps.designs.ai_suggest import detect_scope
+        self.assertEqual(detect_scope("change the design in the middle"), "element")
+        self.assertEqual(detect_scope("replace the circle with a heart"), "element")
+        self.assertEqual(detect_scope("swap the logo"), "element")
+
+    def test_element_remove_object(self):
+        from apps.designs.ai_suggest import apply_element_patches
+        patches = [{"action": "remove", "blytzId": "obj-circle"}]
+        patched = apply_element_patches(self.design.canvas_json, patches)
+        objs = patched["canvas"]["objects"]
+        self.assertEqual(len(objs), 1)
+        self.assertEqual(objs[0]["blytzId"], "obj-rect")
+
+    def test_element_replace_object(self):
+        from apps.designs.ai_suggest import apply_element_patches
+        new_obj = {
+            "type": "path",
+            "left": 300,
+            "top": 300,
+            "width": 100,
+            "height": 100,
+            "fill": "#0000ff",
+        }
+        patches = [{"action": "replace", "blytzId": "obj-circle", "object": new_obj}]
+        patched = apply_element_patches(self.design.canvas_json, patches)
+        objs = patched["canvas"]["objects"]
+        self.assertEqual(len(objs), 2)
+        self.assertFalse(any(o.get("blytzId") == "obj-circle" for o in objs))
+        replaced = next(o for o in objs if o.get("type") == "path")
+        self.assertEqual(replaced["fill"], "#0000ff")
+
+    def test_element_preserves_untargeted(self):
+        from apps.designs.ai_suggest import apply_element_patches, validate_element_preservation
+        new_obj = {
+            "type": "path",
+            "left": 300,
+            "top": 300,
+            "width": 100,
+            "height": 100,
+            "fill": "#0000ff",
+        }
+        patches = [{"action": "replace", "blytzId": "obj-circle", "object": new_obj}]
+        patched = apply_element_patches(self.design.canvas_json, patches)
+        validate_element_preservation(self.design.canvas_json, patched, patches)
+
+        orig_rect = next(o for o in self.design.canvas_json["canvas"]["objects"] if o.get("blytzId") == "obj-rect")
+        patched_rect = next(o for o in patched["canvas"]["objects"] if o.get("blytzId") == "obj-rect")
+        self.assertEqual(orig_rect, patched_rect)
+
+    @patch("apps.designs.views.suggest_design_candidates")
+    def test_element_view_returns_full_canvas(self, mock_suggest):
+        new_obj = {
+            "type": "circle",
+            "left": 320,
+            "top": 320,
+            "width": 80,
+            "height": 80,
+            "fill": "#ff00ff",
+            "blytzId": "obj-new",
+        }
+        mock_suggest.return_value = {
+            "message": "Replaced element",
+            "scope": "element",
+            "suggestions": [
+                {
+                    "id": "a",
+                    "label": "Option A",
+                    "description": "Desc A",
+                    "patches": [{"action": "replace", "blytzId": "obj-circle", "object": new_obj}],
+                },
+                {
+                    "id": "b",
+                    "label": "Option B",
+                    "description": "Desc B",
+                    "patches": [{"action": "remove", "blytzId": "obj-circle"}],
+                },
+            ],
+            "usage": {"prompt_tokens": 10, "output_tokens": 20},
+        }
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            self.url,
+            data=json.dumps({
+                "message": "replace the circle",
+                "canvas_json": self.design.canvas_json,
+                "active_side": "front",
+            }),
+            content_type="application/json",
+            HTTP_ACCEPT="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(len(data["suggestions"]), 2)
+        sug_a = data["suggestions"][0]
+        self.assertEqual(sug_a["canvasJSON"]["schema_version"], 1)
+        objs = sug_a["canvasJSON"]["canvas"]["objects"]
+        self.assertTrue(any(o.get("blytzId") == "obj-new" for o in objs))
+
+    def test_element_preserves_bounds(self):
+        from apps.designs.ai_suggest import apply_element_patches, assert_envelope_in_print_bounds
+        new_obj = {
+            "type": "circle",
+            "left": 320,
+            "top": 320,
+            "width": 80,
+            "height": 80,
+            "fill": "#ff00ff",
+        }
+        patches = [{"action": "replace", "blytzId": "obj-circle", "object": new_obj}]
+        patched = apply_element_patches(self.design.canvas_json, patches)
+        env = {
+            "schema_version": 1,
+            "width": 800,
+            "height": 800,
+            "canvas": patched["canvas"],
+        }
+        assert_envelope_in_print_bounds(env, garment_template="tee", side="front")
+                
+    @override_settings(
+        AI_DESIGN_PROVIDER="deepseek",
+        DEEPSEEK_API_KEY="dummy",
+        DEEPSEEK_BASE_URL="https://example.invalid/v1",
+    )
+    def test_deepseek_element_uses_patch_normalizer(self):
+        """Regression: _call_openai_compatible must route element scope to
+        _normalize_patch_candidates, not _normalize_candidates."""
+        from services.ai_design import suggest_design_candidates
+
+        patch_response = {
+            "message": "Replaced the circle with a heart",
+            "candidates": [
+                {
+                    "id": "candidate-a",
+                    "label": "Heart A",
+                    "description": "Path heart",
+                    "patches": [
+                        {
+                            "action": "replace",
+                            "blytzId": "obj-circle",
+                            "object": {
+                                "type": "path",
+                                "path": [["M", 0, 0], ["Z"]],
+                                "left": 300,
+                                "top": 300,
+                                "width": 100,
+                                "height": 100,
+                                "fill": "#ff0000",
+                            },
+                        }
+                    ],
+                },
+                {
+                    "id": "candidate-b",
+                    "label": "Heart B",
+                    "description": "Alt heart",
+                    "patches": [
+                        {
+                            "action": "replace",
+                            "blytzId": "obj-circle",
+                            "object": {
+                                "type": "path",
+                                "path": [["M", 0, 0], ["Z"]],
+                                "left": 300,
+                                "top": 300,
+                                "width": 100,
+                                "height": 100,
+                                "fill": "#00ff00",
+                            },
+                        }
+                    ],
+                },
+            ],
+        }
+        mock_body = json.dumps({
+            "choices": [
+                {
+                    "message": {"content": json.dumps(patch_response)},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 20},
+        })
+
+        class _Resp:
+            status = 200
+            def __init__(self, body):
+                self._body = body
+            def read(self):
+                return self._body.encode("utf-8")
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+
+        with patch("services.ai_design.urllib.request.urlopen", return_value=_Resp(mock_body)):
+            result = suggest_design_candidates(
+                message="change the design in the middle to match the image attached",
+                canvas_json=self.design.canvas_json,
+                active_side="front",
+                scope="element",
+            )
+
+        self.assertEqual(result["scope"], "element")
+        self.assertEqual(len(result["suggestions"]), 2)
+        self.assertIn("patches", result["suggestions"][0])
+        self.assertEqual(result["suggestions"][0]["patches"][0]["action"], "replace")
+

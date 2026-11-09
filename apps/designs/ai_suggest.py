@@ -278,14 +278,26 @@ TEXT_PATCHABLE_PROPERTIES = frozenset({
 })
 TEXT_OBJECT_TYPES = frozenset({"text", "IText", "textbox"})
 
+ELEMENT_CUES = (
+    "change the design in the middle",
+    "replace the",
+    "swap the",
+    "change the logo",
+    "change the center",
+)
+
 _HEX_COLOR_RE = re.compile(r"#[0-9a-f]{3,8}\b", re.I)
 
 
 def detect_scope(message: str) -> str:
     msg = (message or "").lower()
-    for cue in REDESIGN_CUES:
+    has_element = any(cue in msg for cue in ELEMENT_CUES)
+    redesign_cues_to_check = [c for c in REDESIGN_CUES if c != "replace"] if has_element else REDESIGN_CUES
+    for cue in redesign_cues_to_check:
         if cue in msg:
             return "redesign"
+    if has_element:
+        return "element"
     has_text = any(cue in msg for cue in TEXT_CUES)
     has_color = any(cue in msg for cue in COLOR_CUES) or bool(_HEX_COLOR_RE.search(msg))
     if has_text and has_color:
@@ -308,6 +320,106 @@ def apply_patches(canvas_json: dict, patches: list[dict]) -> dict:
         target = obj_map[bid]
         target[p["property"]] = p["value"]
     return copied
+
+
+def apply_element_patches(original_canvas: dict, patches: list[dict]) -> dict:
+    copied = copy.deepcopy(original_canvas)
+    canvas_obj = copied.setdefault("canvas", {})
+    objs = canvas_obj.setdefault("objects", [])
+    if not isinstance(objs, list):
+        objs = []
+        canvas_obj["objects"] = objs
+
+    import uuid
+
+    for p in patches or []:
+        if not isinstance(p, dict):
+            continue
+        action = str(p.get("action") or "").lower()
+        bid = p.get("blytzId")
+        bid_str = str(bid) if bid is not None else None
+
+        if action == "remove":
+            if bid_str is None:
+                raise ValueError("remove action requires blytzId")
+            new_objs = [
+                o for o in objs
+                if str(o.get("blytzId")) != bid_str and str(o.get("id")) != bid_str
+            ]
+            if len(new_objs) == len(objs):
+                raise ValueError(f"unknown blytzId for remove: {bid_str}")
+            objs = new_objs
+        elif action == "add":
+            new_obj = p.get("object")
+            if not isinstance(new_obj, dict):
+                raise ValueError("add action requires object dictionary")
+            obj_copy = copy.deepcopy(new_obj)
+            if not obj_copy.get("blytzId") and not obj_copy.get("id"):
+                obj_copy["blytzId"] = f"elem-{uuid.uuid4().hex[:8]}"
+            objs.append(obj_copy)
+        elif action == "replace":
+            if bid_str is None:
+                raise ValueError("replace action requires blytzId")
+            new_obj = p.get("object")
+            if not isinstance(new_obj, dict):
+                raise ValueError("replace action requires object dictionary")
+            found = False
+            new_objs = []
+            for o in objs:
+                if str(o.get("blytzId")) == bid_str or str(o.get("id")) == bid_str:
+                    found = True
+                else:
+                    new_objs.append(o)
+            if not found:
+                raise ValueError(f"unknown blytzId for replace: {bid_str}")
+            obj_copy = copy.deepcopy(new_obj)
+            if not obj_copy.get("blytzId") and not obj_copy.get("id"):
+                obj_copy["blytzId"] = f"elem-{uuid.uuid4().hex[:8]}"
+            new_objs.append(obj_copy)
+            objs = new_objs
+        else:
+            raise ValueError(f"unknown patch action: {action}")
+
+    canvas_obj["objects"] = objs
+    copied["canvas"] = canvas_obj
+    return copied
+
+
+def validate_element_preservation(original_canvas: dict, patched_canvas: dict, patches: list[dict]) -> None:
+    orig_objs = original_canvas.get("canvas", {}).get("objects", [])
+    patched_objs = patched_canvas.get("canvas", {}).get("objects", [])
+
+    orig_map = {str(o.get("blytzId") or o.get("id")): o for o in orig_objs if (o.get("blytzId") is not None or o.get("id") is not None)}
+    patched_map = {str(o.get("blytzId") or o.get("id")): o for o in patched_objs if (o.get("blytzId") is not None or o.get("id") is not None)}
+
+    targeted_bids = set()
+    for p in patches or []:
+        bid = p.get("blytzId")
+        if bid is not None:
+            targeted_bids.add(str(bid))
+
+    for bid, o_obj in orig_map.items():
+        if bid not in targeted_bids:
+            if bid not in patched_map:
+                raise ValueError(f"preservation: untargeted object {bid} was removed")
+            p_obj = patched_map[bid]
+            all_keys = set(o_obj.keys()) | set(p_obj.keys())
+            for k in all_keys:
+                if o_obj.get(k) != p_obj.get(k):
+                    raise ValueError(f"preservation: untargeted object {bid} modified property {k}")
+
+    for p in patches or []:
+        action = str(p.get("action") or "").lower()
+        bid = str(p.get("blytzId")) if p.get("blytzId") is not None else None
+        if action in ("remove", "replace"):
+            if bid not in orig_map:
+                raise ValueError(f"patch references unknown blytzId: {bid}")
+        if action == "remove":
+            if bid in patched_map:
+                raise ValueError(f"remove action failed to remove blytzId: {bid}")
+        elif action == "replace":
+            if bid in patched_map and patched_map[bid] == orig_map[bid]:
+                raise ValueError(f"replace action failed to change blytzId: {bid}")
 
 
 def validate_preservation(scope: str, original: dict, patched: dict, patches: list[dict]) -> None:
@@ -386,12 +498,17 @@ def finalize_scope_result(
     scope = raw_result.get("scope")
     if scope == "redesign":
         return raw_result
-    if scope in ("color", "text"):
+    if scope in ("color", "text", "element"):
         candidates = raw_result.get("suggestions", [])
         for c in candidates:
             try:
-                patched = apply_patches(original_canvas_json, c.get("patches", []))
-                validate_preservation(scope, original_canvas_json, patched, c.get("patches", []))
+                patches = c.get("patches", [])
+                if scope == "element":
+                    patched = apply_element_patches(original_canvas_json, patches)
+                    validate_element_preservation(original_canvas_json, patched, patches)
+                else:
+                    patched = apply_patches(original_canvas_json, patches)
+                    validate_preservation(scope, original_canvas_json, patched, patches)
                 env = {
                     "schema_version": 1,
                     "width": 800,

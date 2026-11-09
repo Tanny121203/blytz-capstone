@@ -522,7 +522,7 @@ def design_ai_suggest(request, pk):
                     status=503,
                 )
 
-            if scope in ("color", "text"):
+            if scope in ("color", "text","element"):
                 suggestions = result["suggestions"]
             else:
                 suggestions = validate_two_candidates(

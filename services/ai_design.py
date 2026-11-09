@@ -112,7 +112,7 @@ Hard rules:
   manually (editor shows an overflow warning).
 - Still keep artwork on the garment face — do not scatter objects across empty
   canvas corners far from the panel. Fill the panel appropriately; dense layouts OK.
-- Preserve existing image objects from current_canvas unless the customer asked to
+- - Preserve existing image objects from current_canvas unless the customer asked to
   remove/replace/clear images or start over.
 - Do not invent external assets.
 - Use explicit fill, fontSize, left, top. Prefer coordinates inside the print panel.
@@ -556,7 +556,7 @@ def _call_openai_compatible(
         ) from exc
 
     parsed = _extract_json_object(content)
-    if scope in ("color", "text"):
+    if scope in ("color", "text", "element"):
         suggestions = _normalize_patch_candidates(parsed, original_canvas_json=original_canvas_json or {}, scope=scope)
     else:
         suggestions = _normalize_candidates(parsed)
@@ -573,7 +573,7 @@ def _call_openai_compatible(
             "output_tokens": output_tokens,
         },
     }
-    if scope in ("color", "text"):
+    if scope in ("color", "text", "element"):
         res["scope"] = scope
     return res
 
@@ -831,10 +831,60 @@ Hard rules:
 """
 
 
+def _element_prompt(*, dual_side: bool, image_present: bool = False) -> str:
+    dual_block = ""
+    if dual_side:
+        dual_block = """
+Dual-side mode is ON for this turn:
+- The customer has requested a change that applies to the active side only. Do not modify objects on the other side.
+"""
+    image_note = ""
+    if image_present:
+        image_note = """
+A reference image is attached to this turn. Use it as design guidance:
+- Extract relevant characteristics: colors, typography, patterns, composition,
+  decorative elements.
+"""
+    return f"""You are Blytz's element-replacement assistant. Do not generate a full canvas. Only output patches.
+
+Return ONLY a single JSON object with this exact shape:
+{{
+  "message": "short assistant reply to the customer",
+  "candidates": [
+    {{
+      "id": "candidate-a",
+      "label": "short label",
+      "description": "one-line description",
+      "patches": [
+        {{"action": "replace", "blytzId": "...", "object": {{ /* fabric object */ }}}}
+      ]
+    }},
+    {{
+      "id": "candidate-b",
+      "label": "short label",
+      "description": "one-line description",
+      "patches": [
+        {{"action": "remove", "blytzId": "..."}}
+      ]
+    }}
+  ]
+}}
+
+{dual_block}
+
+{image_note}
+Rules:
+- Every blytzId must be copied from current_canvas. Only patch the specific objects requested. Do not remove or modify any object not explicitly targeted.
+- Allowed actions: "remove", "add", "replace".
+- Allowed object types only: rect, ellipse, circle, line, polygon, path, text, IText, textbox, image.
+- Return exactly two candidates.
+"""
+
+
 def _normalize_patch_candidates(payload: dict, *, original_canvas_json: dict, scope: str) -> list[dict]:
     if not isinstance(payload, dict):
         raise AIDesignError(
-            "AI returned malformed color suggestions. Please retry.",
+            "AI returned malformed suggestions. Please retry.",
             code="ai_validation",
         )
     from apps.designs.ai_suggest import TEXT_PATCHABLE_PROPERTIES, TEXT_OBJECT_TYPES
@@ -843,13 +893,15 @@ def _normalize_patch_candidates(payload: dict, *, original_canvas_json: dict, sc
         allowed_props = {"fill", "stroke"}
     elif scope == "text":
         allowed_props = TEXT_PATCHABLE_PROPERTIES
+    elif scope == "element":
+        allowed_actions = {"remove", "add", "replace"}
     else:
         raise AIDesignError(code="ai_validation", message="Unsupported scope for patch mode")
 
     candidates = payload.get("candidates") or payload.get("suggestions")
     if not isinstance(candidates, list) or len(candidates) != 2:
         raise AIDesignError(
-            "AI returned malformed color suggestions. Please retry.",
+            "AI returned malformed suggestions. Please retry.",
             code="ai_validation",
         )
     orig_canvas = original_canvas_json.get("canvas", {}) if isinstance(original_canvas_json, dict) else {}
@@ -861,7 +913,7 @@ def _normalize_patch_candidates(payload: dict, *, original_canvas_json: dict, sc
     for i, item in enumerate(candidates):
         if not isinstance(item, dict):
             raise AIDesignError(
-                "AI returned malformed color suggestions. Please retry.",
+                "AI returned malformed suggestions. Please retry.",
                 code="ai_validation",
             )
         patches_raw = item.get("patches")
@@ -871,25 +923,51 @@ def _normalize_patch_candidates(payload: dict, *, original_canvas_json: dict, sc
         for p in patches_raw:
             if not isinstance(p, dict):
                 raise AIDesignError(
-                    "AI returned malformed color suggestions. Please retry.",
+                    "AI returned malformed suggestions. Please retry.",
                     code="ai_validation",
                 )
-            bid = str(p.get("blytzId") or "")
-            prop = str(p.get("property") or "").strip()
-            val = p.get("value")
-            if bid not in valid_ids or prop not in allowed_props:
-                raise AIDesignError(
-                    "AI returned malformed color suggestions. Please retry.",
-                    code="ai_validation",
-                )
-            if scope == "text":
-                target_obj = orig_map[bid]
-                if str(target_obj.get("type", "")) not in TEXT_OBJECT_TYPES:
+            if scope == "element":
+                action = str(p.get("action") or "").lower()
+                if action not in allowed_actions:
                     raise AIDesignError(
                         code="ai_validation",
-                        message="Text patch targets a non-text object",
+                        message="Element patch action invalid",
                     )
-            normalized_patches.append({"blytzId": bid, "property": prop, "value": val})
+                patch_item = {"action": action}
+                if action in ("remove", "replace"):
+                    bid = str(p.get("blytzId") or "")
+                    if bid not in valid_ids:
+                        raise AIDesignError(
+                            code="ai_validation",
+                            message="Element patch references unknown blytzId",
+                        )
+                    patch_item["blytzId"] = bid
+                if action in ("add", "replace"):
+                    obj_dict = p.get("object")
+                    if not isinstance(obj_dict, dict):
+                        raise AIDesignError(
+                            code="ai_validation",
+                            message="Element patch missing object dict",
+                        )
+                    patch_item["object"] = obj_dict
+                normalized_patches.append(patch_item)
+            else:
+                bid = str(p.get("blytzId") or "")
+                prop = str(p.get("property") or "").strip()
+                val = p.get("value")
+                if bid not in valid_ids or prop not in allowed_props:
+                    raise AIDesignError(
+                        "AI returned malformed color suggestions. Please retry.",
+                        code="ai_validation",
+                    )
+                if scope == "text":
+                    target_obj = orig_map[bid]
+                    if str(target_obj.get("type", "")) not in TEXT_OBJECT_TYPES:
+                        raise AIDesignError(
+                            code="ai_validation",
+                            message="Text patch targets a non-text object",
+                        )
+                normalized_patches.append({"blytzId": bid, "property": prop, "value": val})
 
         cid = str(item.get("id") or f"candidate-{i + 1}")
         entry: dict[str, Any] = {
@@ -941,12 +1019,14 @@ def suggest_design_candidates(
     if repair_hint:
         user_payload["repair_hint"] = str(repair_hint)[:500]
 
-    if scope not in ("redesign", "color", "text"):
+    if scope not in ("redesign", "color", "text", "element"):
         raise AIDesignError("Unsupported scope", code="ai_validation")
 
     image_present = reference_image is not None
     if scope == "redesign":
         system_prompt = _system_prompt(dual_side=dual_side, image_present=image_present)
+    elif scope == "element":
+        system_prompt = _element_prompt(dual_side=dual_side, image_present=image_present)
     else:
         system_prompt = _patch_prompt(scope=scope, dual_side=dual_side, image_present=image_present)
 
@@ -1222,7 +1302,7 @@ def suggest_design_candidates(
         ) from exc
 
     parsed = _extract_json_object(text)
-    if scope in ("color", "text"):
+    if scope in ("color", "text", "element"):
         suggestions = _normalize_patch_candidates(parsed, original_canvas_json=canvas_json or {}, scope=scope)
     else:
         suggestions = _normalize_candidates(parsed)
@@ -1240,6 +1320,6 @@ def suggest_design_candidates(
             "output_tokens": output_tokens,
         },
     }
-    if scope in ("color", "text"):
+    if scope in ("color", "text", "element"):
         res["scope"] = scope
     return res
